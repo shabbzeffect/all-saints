@@ -1,0 +1,137 @@
+# ============================================================================
+# SaintsHub - Docker Compose for Local Development
+# ============================================================================
+# Services:
+#   - app: Next.js application
+#   - postgres: PostgreSQL database with schemas (platform, school, parish)
+#   - redis: Redis for BullMQ, sessions, OTP caching
+#   - minio: S3-compatible storage for documents
+#   - mailhog: Email capture for development
+# ============================================================================
+
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # Next.js Application
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/saintshub?schema=platform
+      - DATABASE_URL_SCHOOL=postgresql://postgres:postgres@postgres:5432/saintshub?schema=school
+      - DATABASE_URL_PARISH=postgresql://postgres:postgres@postgres:5432/saintshub?schema=parish
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AFRICASTALKING_USERNAME=sandbox
+      - AFRICASTALKING_API_KEY=${AFRICASTALKING_API_KEY}
+      - MPESA_ENVIRONMENT=sandbox
+      - REDIS_URL=redis://redis:6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY_ID=minioadmin
+      - S3_SECRET_ACCESS_KEY=minioadmin
+      - S3_BUCKET=saintshub
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - mailhog
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=saintshub
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Redis (for BullMQ, sessions, OTP caching)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # MinIO (S3-compatible storage for documents, PDFs, receipts)
+  # ============================================================================
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", "0.0.0.0:9001"]
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # MailHog (Email capture for development)
+  # ============================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/api/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

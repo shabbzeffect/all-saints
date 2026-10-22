@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+  // Override default output to separate schema client
+  output   = "../../node_modules/@prisma/client-school"
+}
+
+// Datasource configurations will be set per-environment
+datasource platform_db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_SCHOOL")
+  // Platform schema tables are accessed via platform_db
+}
