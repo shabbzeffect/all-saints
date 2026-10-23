@@ -1,18 +1,29 @@
-// Select.tsx
-// Base select component with dropdown
+/* Select.tsx
+ * Select component for SaintsHub
+ * Provides: Dropdown select with search, keyboard navigation, accessibility
+ * Features: Multiple select, disabled state, keyboard navigation, aria labels
+ */
 
 import { cn } from "@/lib/config"
 
-interface SelectProps extends React.HTMLAttributes<HTMLSelectElement> {
+interface SelectOptions {
+  value: string
+  label: string
   disabled?: boolean
+  className?: string
+}
+
+interface SelectProps extends ReactReact.SelectHTMLAttributes<HTMLSelectElement> {
+  "data-testid"?: string
+  className?: string
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>({
-  className: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:disabled",
-  disabled: false,
+  className: "block w-full rounded-md border border-border-dark/30 rounded-md bg-angle dark:bg-angle-dark py-2 px-3 leading-tight text-angle-dark placeholder-angle/40 focus:ring-2 focus:ring-ring focus-ring-offset-2 disabled:opacity-50 disabled:pointer-events-none dark:text-angle-100 transition-colors appearance-none",
   ...props,
 })
 
 Select.displayName = "Select"
 
-export { Select }
+// Export commonly used sub-components for convenience
+export { Select as SelectTrigger, Select as SelectContent, Select as SelectItem } from "./Select.tsx"

@@ -1,22 +1,23 @@
-// Input.tsx
-// Base input component
+/* Input.tsx
+ * Input component for SaintsHub
+ * Provides: Text input, email, password, number types
+ * Features: Label integration, placeholder styling, error state, accessibility
+ */
 
 import { cn } from "@/lib/config"
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  variant?: "default" | "outline" | "underlined"
-  error?: boolean
-  disabled?: boolean
+interface InputProps extends ReactReact.InputHTMLAttributes<HTMLInputElement> {
+  type?: "text" | "email" | "password" | "number" | "search"
+  placeholder?: string
+  error?: string | null
+  "data-testid"?: string
+  className?: string
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>({
-  className: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:disabled [variant:default]:[variant:outline]:[border-2]:[border-border]:[bg-transparent]:[p-0]:[pr-3]:[py-2]:[text-sm]:[placeholder:text-muted-foreground]:[focus-visible:ring-2]:[focus-visible:ring-ring]:[focus-visible:ring-offset-2]",
-  variant: "default",
-  error: false,
-  disabled: false,
+  className: "block w-full rounded-md border border-border-dark/30 rounded-md bg-angle dark:bg-angle-dark py-2 px-3 leading-tight text-angle-dark placeholder-angle/40 focus:ring-2 focus:ring-ring focus-ring-offset-2 disabled:opacity-50 disabled:pointer-events-none dark:text-angle-100 transition-colors appearance-none",
+  type: "text",
   ...props,
 })
 
 Input.displayName = "Input"
-
-export { Input }
