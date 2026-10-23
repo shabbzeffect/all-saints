@@ -1,351 +1,146 @@
-// Admissions API Route Handler - SaintsHub School SIS
-
-import { withAuth, requirePermission } from "@/server/authorization"
-import { createAdmissionInquiry, updateAdmissionStatus, getAdmissions } from "@/server/services/school/admissions/admission.service"
-import { getInstitutionGuardians, createGuardian, linkGuardianToStudent, getStudentGuardians } from "@/server/services/school/guardians/guardian.service"
-import { createEnrolment, getStudentCurrentEnrolment, getStudentEnrolmentHistory } from "@/server/services/school/enrolments/enrolment.service"
-import { markAttendance, getAttendanceRecords, getStudentAttendanceHistory, getClassAttendanceSummary } from "@/server/services/school/attendance/attendance.service"
 import { NextResponse } from "next/http"
 
-// ============================================================================
-// ADMISSIONS API
-// ============================================================================
+interface AdmissionApplication {
+  id: string
+  studentName: string
+  admissionNumber: string
+  dateOfBirth: string
+  gender: "MALE" | "FEMALE" | "OTHER"
+  gradeApply: string
+  stream?: string
+  previousSchool: string
+  contactName: string
+  contactPhone: string
+  contactEmail: string
+  currentGrade: string
+  religion: string
+  status: "PENDING" | "UNDER_REVIEW" | "ACCEPTED" | "REJECTED"
+  appliedAt: string
+  reviewedBy?: string
+  reviewedAt?: string
+  notes?: string
+}
 
-export async function GETadmissions(request: Request, { params }: { params: { institution: string } }) {
+interface AdmissionSearch {
+  grade?: string
+  status?: string
+  searchTerm?: string
+}
+
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
-    const status = searchParams.get("status") as any
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:read",
-      async () => { },
-      { anyOf: ["school:admissions:read"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const result = await getAdmissions({
-      institutionId: institutionId as string,
-      filters: status ? { status } : undefined,
-      pagination: { page: parseInt(searchParams.get("page") || "1"), limit: parseInt(searchParams.get("limit") || "20") },
-    })
-
-    return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch admissions" },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POSTadmissions(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const body = await request.json()
-    const institutionId = body.institutionId || params.institution
-    const createdBy = body.createdBy || "system"
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:write",
-      async () => { },
-      { anyOf: ["school:admissions:write"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const admission = await createAdmissionInquiry({
-      data: body.admissionData,
-      institutionId: institutionId as string,
-      createdById: createdBy,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: admission,
-      message: "Admission inquiry created successfully",
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to create admission" },
-      { status: 400 }
-    )
-  }
-}
-
-export async function PUTadmissions(request: Request, { params }: { params: { institution: string; id: string } }) {
-  try {
-    const body = await request.json()
-    const institutionId = body.institutionId || params.institution
-    const id = params.id
-    const updatedBy = body.updatedBy || "system"
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:write",
-      async () => { },
-      { anyOf: ["school:admissions:write"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const result = await updateAdmissionStatus({
-      admissionId: id,
-      institutionId: institutionId as string,
-      newStatus: body.newStatus,
-      updatedById: updatedBy,
-      notes: body.notes,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-      message: "Admission status updated successfully",
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to update admission status" },
-      { status: 400 }
-    )
-  }
-}
-
-// ============================================================================
-// GUARDIANS API (for admissions context)
-// ============================================================================
-
-export async function GETguardians(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
-    const relationship = searchParams.get("relationship")
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:read",
-      async () => { },
-      { anyOf: ["school:guardians:read"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const result = await getInstitutionGuardians({
-      institutionId: institutionId as string,
-      filters: relationship ? { relationship } : undefined,
-      pagination: { page: 1, limit: 20 },
-    })
-
-    return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch guardians" },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POSTguardians(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const body = await request.json()
-    const institutionId = body.institutionId || params.institution
-    const createdBy = body.createdBy || "system"
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:write",
-      async () => { },
-      { anyOf: ["school:guardians:write"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const guardian = await createGuardian({
-      data: body.guardianData,
-      institutionId: institutionId as string,
-      createdById: createdBy,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: guardian,
-      message: "Guardian created successfully",
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to create guardian" },
-      { status: 400 }
-    )
-  }
-}
-
-// ============================================================================
-// ENROLMENTS API
-// ============================================================================
-
-export async function GETenrolments(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
-    const studentId = searchParams.get("studentId")
-    const gradeId = searchParams.get("gradeId")
-    const termId = searchParams.get("termId")
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:enrolments:read",
-      async () => { },
-      { anyOf: ["school:enrolments:read"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    if (studentId) {
-      const result = await getStudentEnrolmentHistory({
-        studentId,
-        institutionId: institutionId as string,
-      })
-      return NextResponse.json(result)
-    }
-
-    const result = await getEnrolments({
-      institutionId: institutionId as string,
-      filters: gradeId || termId ? { gradeId, termId } : undefined,
-      pagination: { page: parseInt(searchParams.get("page") || "1"), limit: parseInt(searchParams.get("limit") || "20") },
-    })
-
-    return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch enrolments" },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POSTenrolments(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const body = await request.json()
-    const institutionId = body.institutionId || params.institution
-    const createdBy = body.createdBy || "system"
-
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:enrolments:write",
-      async () => { },
-      { anyOf: ["school:enrolments:write"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const enrolment = await createEnrolment({
-      data: body.enrolmentData,
-      institutionId: institutionId as string,
-      createdById: createdBy,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: enrolment,
-      message: "Enrolment created successfully",
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to create enrolment" },
-      { status: 400 }
-    )
-  }
-}
-
-// ============================================================================
-// ATTENDANCE API
-// ============================================================================
-
-export async function GETattendance(request: Request, { params }: { params: { institution: string } }) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
-    const studentId = searchParams.get("studentId")
+    const institutionId = searchParams.get("institutionId") || "inst-school-1"
+    const grade = searchParams.get("grade")
     const status = searchParams.get("status")
+    const searchTerm = searchParams.get("search")
 
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:attendance:read",
-      async () => { },
-      { anyOf: ["school:attendance:read"] }
-    )
+    // Mock admission applications
+    const mockApplications: AdmissionApplication[] = [
+      {
+        id: "adm-001",
+        studentName: "Alice Wang",
+        admissionNumber: "ADM-2024-010",
+        dateOfBirth: "2016-03-15",
+        gender: "FEMALE",
+        gradeApply: "Grade 1",
+        stream: "Stream A",
+        previousSchool: "Bright Future Academy",
+        contactName: "Robert Wang",
+        contactPhone: "+254712345678",
+        contactEmail: "robert.wang@email.com",
+        currentGrade: "PP2",
+        religion: "Christian",
+        status: "ACCEPTED",
+        appliedAt: new Date(Date.now() - 604800000).toISOString(),
+      },
+      {
+        id: "adm-002",
+        studentName: "Brian Okoro",
+        admissionNumber: "ADM-2024-011",
+        dateOfBirth: "2017-08-22",
+        gender: "MALE",
+        gradeApply: "Grade 3",
+        previousSchool: "Star of Hope School",
+        contactName: "Michael Okoro",
+        contactPhone: "+254723456789",
+        contactEmail: "m.okoro@email.com",
+        currentGrade: "Grade 2",
+        religion: "Muslim",
+        status: "UNDER_REVIEW",
+        appliedAt: new Date(Date.now() - 1209600000).toISOString(),
+      },
+      {
+        id: "adm-003",
+        studentName: "Carol Chebet",
+        admissionNumber: "ADM-2024-012",
+        dateOfBirth: "2015-11-10",
+        gender: "FEMALE",
+        gradeApply: "Grade 7",
+        previousSchool: "Nairobi Primary School",
+        contactName: "Peter Chebet",
+        contactPhone: "+254734567890",
+        contactEmail: "p.chebet@email.com",
+        currentGrade: "Grade 6",
+        religion: "Christian",
+        status: "PENDING",
+        appliedAt: new Date(Date.now() - 1814400000).toISOString(),
+      },
+    ]
 
-    if (permissionCheck) return permissionCheck
+    let filteredApps = mockApplications
 
-    if (studentId) {
-      const result = await getStudentAttendanceHistory({
-        studentId,
-        institutionId: institutionId as string,
-      })
-      return NextResponse.json(result)
+    if (grade) {
+      filteredApps = filteredApps.filter((a) => a.gradeApply === grade)
+    }
+    if (status) {
+      filteredApps = filteredApps.filter((a) => a.status === status)
+    }
+    if (searchTerm) {
+      const termLower = searchTerm.toLowerCase()
+      filteredApps = filteredApps.filter(
+        (a) =>
+          a.studentName.toLowerCase().includes(termLower) ||
+          a.admissionNumber.toLowerCase().includes(termLower) ||
+          a.contactEmail.toLowerCase().includes(termLower)
+      )
     }
 
-    const result = await getAttendanceRecords({
-      institutionId: institutionId as string,
-      pagination: { page: parseInt(searchParams.get("page") || "1"), limit: parseInt(searchParams.get("limit") || "50") },
+    return NextResponse.json({
+      success: true,
+      data: filteredApps,
     })
-
-    return NextResponse.json(result)
   } catch (error) {
+    console.error("School admissions error:", error)
     return NextResponse.json(
-      { error: "Failed to fetch attendance" },
+      { success: false, error: "Failed to fetch admissions" },
       { status: 500 }
     )
   }
 }
 
-export async function POSTattendance(request: Request, { params }: { params: { institution: string } }) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
-    const markedBy = body.markedBy || "system"
 
-    // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:attendance:write",
-      async () => { },
-      { anyOf: ["school:attendance:write"] }
-    )
-
-    if (permissionCheck) return permissionCheck
-
-    const result = await markAttendance({
-      studentId: body.studentId,
-      institutionId: institutionId as string,
-      date: body.date,
-      status: body.status,
-      markedById: markedBy,
-      notes: body.notes,
-    })
+    // Create new admission application
+    const newApplication: AdmissionApplication = {
+      id: `adm-${Date.now().toString(36)}`,
+      ...body,
+      status: "PENDING",
+      appliedAt: new Date().toISOString(),
+    }
 
     return NextResponse.json({
       success: true,
-      data: result,
-      message: "Attendance marked successfully",
+      data: newApplication,
+      message: "Admission application submitted successfully",
     })
-  } catch (error: any) {
+  } catch (error) {
+    console.error("Create admission error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to mark attendance" },
-      { status: 400 }
+      { success: false, error: "Failed to submit admission application" },
+      { status: 500 }
     )
   }
 }
-
-// ============================================================================
-// EXPORT
-// ============================================================================
