@@ -179,6 +179,87 @@ enum Wing {
   SHARED
 }
 
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+}
+
+enum ExeatStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum DormitoryCategory {
+  CURFEW
+  VISITING
+  CONDUCT
+  EQUIPMENT
+  OTHER
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  LPG
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum MaintenanceType {
+  SERVICE
+  REPAIR
+  INSPECTION
+  CLEANING
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PublicationCategory {
+  FICTION
+  NON_FICTION
+  REFERENCE
+  TEXTBOOK
+  BIOGRAPHY
+  OTHER
+}
+
+enum Language {
+  ENGLISH
+  SWAHILI
+  OTHER
+}
+
+enum ExeatRecordStatus {
+  ISSUED
+  RETURNED
+  LOST
+  DAMAGED
+}
+
+enum ReserveStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+enum FineType {
+  OVERDUE
+  LOST
+  DAMAGED
+}
+
 enum AssessmentType {
   FORMATIVE
   SUMMATIVE
@@ -1138,7 +1219,7 @@ model Room {
   id String @id @default(cuid())
   dormitoryId String
   roomNumber String // e.g., "R-101", "R-205"
-  roomType "SINGLE" | "DOUBLE" | "TRIPLE"
+  roomType RoomType
   capacity Int
   currentStudents Int @default(0)
   wing Wing @default(SCHOOL)
@@ -1177,7 +1258,7 @@ model ExeatPass {
   reason String
   startDate DateTime
   endDate DateTime
-  status "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED"
+  status ExeatStatus
   approvedBy String?
   approvedAt DateTime?
   createdAt DateTime @default(now())
@@ -1210,7 +1291,7 @@ model DormitoryRule {
   institutionId String
   title String
   description String
-  category "CURFEW" | "VISITING" | "CONDUCT" | "EQUIPMENT" | "OTHER"
+  category DormitoryCategory
   isActive Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1229,10 +1310,10 @@ model Vehicle {
   model String
   year Int
   capacity Int
-  fuelType "PETROL" | "DIESEL" | "ELECTRIC" | "LPG"
+  fuelType FuelType
   licenseExpires Date
   insuranceExpires Date
-  status "ACTIVE" | "MAINTENANCE" | "RETIRED" @default(ACTIVE)
+  status VehicleStatus @default(ACTIVE)
   purchasedDate Date
   purchasePrice Float?
   notes String?
@@ -1298,14 +1379,14 @@ model RouteAssignment {
 model VehicleMaintenance {
   id String @id @default(cuid())
   vehicleId String
-  maintenanceType "SERVICE" | "REPAIR" | "INSPECTION" | "CLEANING"
+  maintenanceType MaintenanceType
   description String
   plannedDate Date
   completedDate Date?
   cost Float
   mileageAtService Int
   performedBy String?
-  status "PENDING" | "IN_PROGRESS" | "COMPLETED" @default(PENDING)
+  status MaintenanceStatus @default(PENDING)
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
@@ -1343,10 +1424,10 @@ model Book {
   coAuthor String?
   publisher String?
   publicationYear Int
-  category "FICTION" | "NON_FICTION" | "REFERENCE" | "TEXTBOOK" | "BIOGRAPHY" | "OTHER"
+  category PublicationCategory
   description String?
   pageCount Int?
-  language "ENGLISH" | "SWAHILI" | "OTHER" @default(ENGLISH)
+  language Language @default(ENGLISH)
   copiesTotal Int @default(1)
   copiesAvailable Int @default(1)
   coverImageUrl String?
@@ -1365,7 +1446,7 @@ model BorrowRecord {
   issuedAt DateTime @default(now())
   dueDate DateTime
   returnedAt DateTime?
-  status "ISSUED" | "RETURNED" | "LOST" | "DAMAGED"
+  status ExeatRecordStatus
   fineAmount Float @default(0)
   finePaid Boolean @default(false)
   createdAt DateTime @default(now())
@@ -1386,7 +1467,7 @@ model ReserveRecord {
   studentId String
   requestedAt DateTime @default(now())
   fulfilledAt DateTime?
-  status "PENDING" | "FULFILLED" | "CANCELLED"
+  status ReserveStatus
 
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -1402,7 +1483,7 @@ model LibraryFine {
   fineName String // e.g., "Overdue Daily Fine", "Lost Book Replacement"
   description String
   amount Float // KES
-  fineType "OVERDUE" | "LOST" | "DAMAGED"
+  fineType FineType
   isActive Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
