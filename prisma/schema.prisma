@@ -1124,9 +1124,9 @@ model Dormitory {
   type String // "BOYS", "GIRLS", "MIXED"
   capacity Int
   currentOccupancy Int @default(0)
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1141,10 +1141,10 @@ model Room {
   roomType "SINGLE" | "DOUBLE" | "TRIPLE"
   capacity Int
   currentStudents Int @default(0)
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
   features String[] // e.g., ["EN-SUITE", "AC", "WIFI"]
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   dormitory Dormitory @relation(fields: [dormitoryId], references: [id], onDelete: Cascade)
@@ -1155,7 +1155,7 @@ model RoomAssignment {
   id String @id @default(cuid())
   roomId String
   studentId String
-  assignedAt DateTime @default(now%)
+  assignedAt DateTime @default(now())
   assignedBy String
   leaseStart Date
   leaseEnd Date?
@@ -1180,7 +1180,7 @@ model ExeatPass {
   status "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED"
   approvedBy String?
   approvedAt DateTime?
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
@@ -1197,9 +1197,9 @@ model BoardingFee {
   amount Float // KES per term
   isMandatory Boolean @default(true)
   applicableGrades String[] // e.g., ["GRADE_7-8", "GRADE_9-12"]
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1212,7 +1212,7 @@ model DormitoryRule {
   description String
   category "CURFEW" | "VISITING" | "CONDUCT" | "EQUIPMENT" | "OTHER"
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1236,9 +1236,9 @@ model Vehicle {
   purchasedDate Date
   purchasePrice Float?
   notes String?
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1251,9 +1251,9 @@ model Route {
   institutionId String
   name String // e.g., "Route A - Moshi"
   description String?
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1283,7 +1283,7 @@ model RouteAssignment {
   id String @id @default(cuid())
   routeId String
   studentId String
-  assignedAt DateTime @default(now%)
+  assignedAt DateTime @default(now())
   assignedBy String
   isCurrent Boolean @default(true)
 
@@ -1322,9 +1322,9 @@ model TransportFee {
   amount Float // KES per term
   isMandatory Boolean @default(true)
   applicableGrades String[]
-  wing "SCHOOL" | "PARISH" @default(SCHOOL)
+  wing Wing @default(SCHOOL)
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1350,7 +1350,7 @@ model Book {
   copiesTotal Int @default(1)
   copiesAvailable Int @default(1)
   coverImageUrl String?
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1362,13 +1362,13 @@ model BorrowRecord {
   id String @id @default(cuid())
   bookId String
   studentId String
-  issuedAt DateTime @default(now%)
+  issuedAt DateTime @default(now())
   dueDate DateTime
   returnedAt DateTime?
   status "ISSUED" | "RETURNED" | "LOST" | "DAMAGED"
   fineAmount Float @default(0)
   finePaid Boolean @default(false)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
@@ -1384,7 +1384,7 @@ model ReserveRecord {
   id String @id @default(cuid())
   bookId String
   studentId String
-  requestedAt DateTime @default(now%)
+  requestedAt DateTime @default(now())
   fulfilledAt DateTime?
   status "PENDING" | "FULFILLED" | "CANCELLED"
 
@@ -1404,7 +1404,7 @@ model LibraryFine {
   amount Float // KES
   fineType "OVERDUE" | "LOST" | "DAMAGED"
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -1416,7 +1416,7 @@ model LibraryCategory {
   name String // e.g., "Fiction", "Science", "History"
   description String?
   isActive Boolean @default(true)
-  createdAt DateTime @default(now%)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
