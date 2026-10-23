@@ -179,6 +179,224 @@ enum Wing {
   SHARED
 }
 
+enum InstitutionMembershipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  REVOKED
+}
+
+model InstitutionMembership {
+  id            String   @id @default(cuid())
+  institutionId String
+  userId        String
+  role          String   // e.g., "ADMIN", "TEACHER", "STUDENT", "GUARDIAN"
+  joinedAt      DateTime @default(now())
+  status        InstitutionMembershipStatus @default(ACTIVE)
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, userId])
+  @@index([institutionId])
+  @@index([userId])
+  @@map("institution_memberships")
+}
+
+enum NotificationType {
+  SYSTEM
+  SECURITY
+  ACADEMIC
+  DISCIPLINE
+  FINANCIAL
+  GIVING
+  EVENT
+  CONSENT
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  institutionId String?
+  userId        String
+  type          NotificationType
+  title         String
+  message       String   @db.Text
+  read          Boolean  @default(false)
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+  metadata      Json     @default("{}")
+
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model BackgroundJob {
+  id                String   @id @default(cuid())
+  institutionId     String?
+  jobType           String   // e.g., "EMAIL", "SMS", "REPORT", "SYNC"
+  status            BackgroundJobStatus @default(PENDING)
+  payload           Json     @default("{}")
+  errorMessage      String?
+  attempts        Int      @default(0)
+  maxAttempts       Int      @default(3)
+  nextRunAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  completedById     String?
+
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([nextRunAt])
+  @@map("background_jobs")
+}
+
+enum DocumentCategory {
+  IDENTITY
+  ACADEMIC
+  FINANCIAL
+  CONSENT
+  DISCIPLINE
+  OTHER
+}
+
+model Document {
+  id              String   @id @default(cuid())
+  institutionId   String
+  title           String
+  category        DocumentCategory
+  path            String   // S3 path or file location
+  mimeType        String
+  size            Int      @default(0)
+  uploaderId      String?
+  uploadedAt      DateTime @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean  @default(true)
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  uploader      User?    @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([isActive])
+  @@map("documents")
+}
+
+enum TicketCategory {
+  GENERAL
+  ACADEMIC
+  FINANCIAL
+  DISCIPLINE
+  FACILITY
+  OTHER
+}
+
+model Ticket {
+  id              String   @id @default(cuid())
+  institutionId   String
+  category        TicketCategory
+  title           String
+  description     String?  @db.Text
+  status          String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority        String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+  createdById     String
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  comments    TicketComment[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id              String   @id @default(cuid())
+  ticketId        String
+  userId          String
+  message         String   @db.Text
+  createdAt       DateTime @default(now())
+  createdBy       User     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  student   Student? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([ticketId, userId, createdAt])
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("ticket_comments")
+}
+
+enum SchoolRelationType {
+  ADMISSION
+  ENROLMENT
+  GRADE_ASSIGNMENT
+  TRANSFER
+  WITHDRAWAL
+}
+
+model SchoolRelation {
+  id              String   @id @default(cuid())
+  institutionId   String
+  type            SchoolRelationType
+  relatedId       String   // Related record ID
+  details         String?
+  createdAt       DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, type, relatedId])
+  @@index([institutionId])
+  @@index([type])
+  @@map("school_relations")
+}
+
+enum ParishRelationType {
+  ADMISSION
+  ENROLMENT
+  GRADE_ASSIGNMENT
+  TRANSFER
+  WITHDRAWAL
+}
+
+model ParishRelation {
+  id              String   @id @default(cuid())
+  institutionId   String
+  type            ParishRelationType
+  relatedId       String   // Related record ID
+  details         String?
+  createdAt       DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, type, relatedId])
+  @@index([institutionId])
+  @@index([type])
+  @@map("parish_relations")
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
 enum RoomType {
   SINGLE
   DOUBLE
