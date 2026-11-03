@@ -5,10 +5,11 @@
  * Features: loading state, full accessibility support
  */
 
+import React from "react"
 import { cn } from "@/lib/config"
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "outline"
+  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "outline" | "link"
   size?: "default" | "sm" | "lg" | "icon"
   asChild?: boolean
   disabled?: boolean
@@ -22,6 +23,7 @@ const variants = {
   destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   ghost: "hover:bg-accent hover:text-accent-foreground",
   outline: "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground",
+  link: "text-primary underline-offset-4 hover:underline",
 }
 
 const sizes = {
@@ -31,16 +33,23 @@ const sizes = {
   icon: "h-10 w-10 p-0",
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>({
-  className: "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none [variant:default]:[variant:primary:bg-primary]:[variant:primary:text-primary-foreground]:[variant:secondary:bg-secondary]:[variant:secondary:text-secondary-foreground]:[variant:destructive:bg-destructive]:[variant:destructive:text-destructive-foreground]:[variant:ghost]:[variant:outline:bg-transparent:outline-2:outline-solid:outline-border [variant:outline:hover:bg-accent:outline:text-accent-foreground]",
-  variant: "default",
-  size: "default",
-  asChild: false,
-  disabled: false,
-  loading: false,
-  ...props,
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = "default", size = "default", asChild = false, disabled = false, loading = false, children, ...props }, ref) => {
+  const Component = asChild ? React.Fragment : "button"
+  return (
+    <Component
+      ref={ref}
+      className={cn(
+        "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+        variants[variant],
+        sizes[size],
+        className
+      )}
+      disabled={disabled}
+      {...props}
+    >
+      {children}
+    </Component>
+  )
 })
 
 Button.displayName = "Button"
-
-export { Button }

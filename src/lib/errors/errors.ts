@@ -109,7 +109,8 @@ export async function fetchWithErrorHandling(
       message: errorData.message || response.statusText,
       severity: "error",
       status: response.status,
-      retryable: response.status >= 500,
+      retryable: false,
+      timestamp: new Date().toISOString(),
     }
 
     if (onError) {

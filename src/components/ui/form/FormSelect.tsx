@@ -4,7 +4,7 @@
  */
 
 import { cn } from "@/lib/config"
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "./select/Select"
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../select/Select"
 
 interface FormSelectProps {
   label: string

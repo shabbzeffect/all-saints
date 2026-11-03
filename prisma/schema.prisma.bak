@@ -1,0 +1,1406 @@
+﻿// ============================================================================
+// SaintsHub - Simplified Prisma Schema for Vercel Deployment
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum Wing {
+  SCHOOL
+  PARISH
+  SHARED
+}
+
+enum NotificationType {
+  SYSTEM
+  SECURITY
+  ACADEMIC
+  DISCIPLINE
+  FINANCIAL
+  GIVING
+  EVENT
+  CONSENT
+}
+
+enum InstitutionMembershipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  REVOKED
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DocumentCategory {
+  IDENTITY
+  ACADEMIC
+  FINANCIAL
+  CONSENT
+  DISCIPLINE
+  OTHER
+}
+
+enum TicketCategory {
+  GENERAL
+  ACADEMIC
+  FINANCIAL
+  DISCIPLINE
+  FACILITY
+  OTHER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum PermissionScope {
+  GLOBAL
+  INSTITUTION
+  PARISH
+  SCHOOL
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  ASSIGN
+  UNASSIGN
+}
+
+enum AssessmentType {
+  FORMATIVE
+  SUMMATIVE
+  DIAGNOSTIC
+  PLACEMENT
+}
+
+enum AssessmentScoreBand {
+  EE
+  ME
+  AE
+  BE
+}
+
+enum StreamType {
+  MAIN
+  SUPPORT
+  ACCELERATED
+}
+
+enum DisciplineCategory {
+  MINOR
+  MAJOR
+  SEVERE
+}
+
+enum DisciplineAction {
+  VERBAL_WARNING
+  WRITTEN_WARNING
+  DETENTION
+  SUSPENSION
+  EXPULSION
+  COUNSELING
+  PARENT_MEETING
+}
+
+enum ClubType {
+  ACADEMIC
+  SPORTS
+  ARTS
+  SERVICE
+  LEADERSHIP
+  FAITH
+}
+
+enum ExeatStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  DORMITORY
+}
+
+enum ExeatRecordStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum ReserveStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+enum ExeatStatusEnum {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum MaintenanceType {
+  ROUTINE
+  REPAIR
+  INSPECTION
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+}
+
+enum MaintenanceType {
+  ROUTINE
+  REPAIR
+  INSPECTION
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  DORMITORY
+}
+
+enum DormitoryCategory {
+  BEHAVIOR
+  SAFETY
+  HYGIENE
+  CURFEW
+  VISITORS
+}
+
+enum ExeatStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ExeatRecordStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum ReserveStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+enum ExeatStatusEnum {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ExeatRecordStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum ReserveStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+enum FineType {
+  OVERDUE
+  DAMAGE
+  LOSS
+}
+
+enum PublicationCategory {
+  FICTION
+  NON_FICTION
+  REFERENCE
+  PERIODICAL
+  DIGITAL
+}
+
+enum Language {
+  ENGLISH
+  SWAHILI
+  FRENCH
+  GERMAN
+  SPANISH
+}
+
+enum PublicationCategory {
+  FICTION
+  NON_FICTION
+  REFERENCE
+  PERIODICAL
+  DIGITAL
+}
+
+enum Language {
+  ENGLISH
+  SWAHILI
+  FRENCH
+  GERMAN
+  SPANISH
+}
+
+enum FineType {
+  OVERDUE
+  DAMAGE
+  LOSS
+}
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  phone             String?   @unique
+  phoneVerified     DateTime?
+  passwordHash      String?
+  name              String?
+  avatarUrl         String?
+  status            UserStatus @default(PENDING_VERIFICATION)
+  timezone          String    @default("Africa/Nairobi")
+  locale            String    @default("en-KE")
+  mfaEnabled        Boolean   @default(false)
+  mfaSecret         String?   @db.Text
+  backupCodes       String[]  @default([])
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  failedLoginAttempts Int     @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  wing              Wing      @default(SHARED)
+  institutionId     String?
+
+  @@index([status])
+  @@index([wing, institutionId])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  ipAddress    String?
+  userAgent    String?
+  deviceName   String?
+  isCurrent    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  type       String
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Institution {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  type        String
+  status      String   @default("ACTIVE")
+  description String?
+  logoUrl     String?
+  address     String?
+  city        String?
+  county      String?
+  country     String   @default("KE")
+  phone       String?
+  email       String?
+  website     String?
+  timezone    String   @default("Africa/Nairobi")
+  currency    String   @default("KES")
+  dateFormat  String   @default("dd/MM/yyyy")
+  settings    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([slug])
+  @@index([status])
+  @@map("institutions")
+}
+
+model InstitutionMembership {
+  id        String @id @default(cuid())
+  institutionId String
+  userId    String
+  role      String
+  joinedAt  DateTime @default(now())
+  status    String @default("ACTIVE")
+
+  @@unique([institutionId, userId])
+  @@index([institutionId])
+  @@index([userId])
+  @@map("institution_memberships")
+}
+
+model Notification {
+  id            String @id @default(cuid())
+  institutionId String?
+  userId        String
+  type          NotificationType
+  title         String
+  message       String @db.Text
+  read          Boolean @default(false)
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+  metadata      Json @default("{}")
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model BackgroundJob {
+  id                String @id @default(cuid())
+  institutionId     String?
+  jobType           String
+  status            BackgroundJobStatus @default(PENDING)
+  payload           Json @default("{}")
+  errorMessage      String?
+  attempts        Int @default(0)
+  maxAttempts       Int @default(3)
+  nextRunAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  completedById     String?
+
+  @@index([status])
+  @@index([nextRunAt])
+  @@map("background_jobs")
+}
+
+model Document {
+  id              String @id @default(cuid())
+  institutionId   String
+  title           String
+  category        DocumentCategory
+  path            String
+  mimeType        String
+  size            Int @default(0)
+  uploaderId      String?
+  uploadedAt      DateTime @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean @default(true)
+
+  @@index([category])
+  @@index([isActive])
+  @@map("documents")
+}
+
+model Ticket {
+  id              String @id @default(cuid())
+  institutionId   String
+  category        TicketCategory
+  title           String
+  description     String? @db.Text
+  status          String @default("OPEN")
+  priority        String @default("MEDIUM")
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+  createdById     String
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id          String @id @default(cuid())
+  ticketId    String
+  commenterId String
+  studentId   String?
+  message     String @db.Text
+  createdAt   DateTime @default(now())
+
+  @@unique([ticketId, commenterId, createdAt])
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("ticket_comments")
+}
+
+// ============================================================================
+// ACADEMICS DOMAIN MODELS
+// ============================================================================
+
+model AcademicYear {
+  id            String @id @default(cuid())
+  institutionId String
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  termCount     Int @default(3)
+  status        String @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+  @@map("academic_years")
+}
+
+model Term {
+  id              String @id @default(cuid())
+  academicYearId  String
+  institutionId   String
+  name            String
+  ordinal         Int
+  startDate       DateTime
+  endDate         DateTime
+  isCurrent       Boolean @default(false)
+  status          String @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([academicYearId, ordinal])
+  @@index([academicYearId])
+  @@index([isCurrent])
+  @@map("terms")
+}
+
+model Grade {
+  id                  String @id @default(cuid())
+  institutionId       String
+  name                String
+  level               String
+  stream              String?
+  formTeacher         String?
+  roomNumber          String?
+  capacity            Int
+  currentStudentCount Int @default(0)
+  academicYearId      String
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+  @@index([level])
+  @@index([academicYearId])
+  @@map("grades")
+}
+
+model StreamEntry {
+  id            String @id @default(cuid())
+  gradeId       String
+  institutionId String
+  name          String
+  level         String
+  capacity      Int
+  currentStudentCount Int @default(0)
+
+  @@unique([gradeId, name])
+  @@index([gradeId])
+  @@index([institutionId])
+  @@map("streams")
+}
+
+model Subject {
+  id            String @id @default(cuid())
+  institutionId String
+  name          String
+  code          String?
+  description   String?
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+  @@map("subjects")
+}
+
+model Assessment {
+  id              String @id @default(cuid())
+  institutionId   String
+  termId          String
+  gradeId         String
+  subjectId       String
+  assessmentType  AssessmentType
+  title           String
+  description     String? @db.Text
+  rubric          Json?
+  maxScore        Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String
+
+  @@index([institutionId])
+  @@index([termId])
+  @@index([gradeId])
+  @@index([subjectId])
+  @@map("assessments")
+}
+
+model AssessmentScore {
+  id              String @id @default(cuid())
+  institutionId   String
+  assessmentId    String
+  studentId       String
+  score           Int
+  gradeBand       AssessmentScoreBand
+  comments        String? @db.Text
+  assessedBy      String
+  assessedAt      DateTime @default(now())
+
+  @@unique([institutionId, assessmentId, studentId])
+  @@index([institutionId])
+  @@index([assessmentId])
+  @@index([studentId])
+  @@map("assessment_scores")
+}
+
+model ReportCard {
+  id                  String @id @default(cuid())
+  institutionId       String
+  studentId           String
+  termId              String
+  gradeId             String
+  academicYearId      String
+  issuedAt            DateTime @default(now())
+  issuedBy            String
+  status              String @default("DRAFT")
+  pdfGenerated        Boolean @default(false)
+  pdfUrl              String?
+  distributed         Boolean @default(false)
+  distributedAt       DateTime?
+  parentAcknowledged  Boolean @default(false)
+  parentAcknowledgedAt DateTime?
+
+  @@unique([institutionId, studentId, termId])
+  @@index([institutionId])
+  @@index([studentId])
+  @@index([status])
+  @@map("report_cards")
+}
+
+model Timetable {
+  id            String @id @default(cuid())
+  institutionId String
+  gradeId       String?
+  termId        String
+  name          String
+  description   String? @db.Text
+  isRecurring   Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String
+
+  @@unique([institutionId, name, termId])
+  @@index([institutionId])
+  @@index([termId])
+  @@map("timetables")
+}
+
+model TimetableLine {
+  id              String @id @default(cuid())
+  timetableId     String
+  dayOfWeek       String
+  period          Int
+  subjectId       String
+  teacherId       String?
+  classroom       String?
+  isDoublePeriod  Boolean @default(false)
+
+  @@unique([timetableId, dayOfWeek, period])
+  @@index([timetableId])
+  @@index([dayOfWeek])
+  @@map("timetable_lines")
+}
+
+model LessonPlan {
+  id              String @id @default(cuid())
+  institutionId   String
+  gradeId         String
+  subjectId       String
+  termId          String
+  weekNumber      Int
+  title           String
+  description     String? @db.Text
+  objectives      Json
+  activities      Json
+  resources       Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String
+
+  @@unique([institutionId, gradeId, subjectId, termId, weekNumber])
+  @@index([institutionId])
+  @@index([termId])
+  @@map("lesson_plans")
+}
+
+model DisciplineIncident {
+  id              String @id @default(cuid())
+  institutionId   String
+  studentId       String
+  teacherId       String?
+  category        DisciplineCategory
+  actionTaken     DisciplineAction
+  description     String? @db.Text
+  date            DateTime
+  severity        Int @default(1)
+  parentNotified  Boolean @default(false)
+  parentNotifiedAt DateTime?
+  resolved        Boolean @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  metadata        Json @default("{}")
+
+  @@index([institutionId])
+  @@index([studentId])
+  @@index([date])
+  @@map("discipline_incidents")
+}
+
+model Club {
+  id                String @id @default(cuid())
+  institutionId     String
+  name              String
+  type              ClubType
+  description       String?
+  leaderId          String?
+  meetingSchedule   String?
+  isActive          Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String
+
+  @@map("clubs")
+}
+
+model ClubMember {
+  id              String @id @default(cuid())
+  institutionId   String
+  clubId          String
+  studentId       String
+  joinedAt        DateTime @default(now())
+  leftAt          DateTime?
+  role            String?
+  isActive        Boolean @default(true)
+
+  @@unique([clubId, studentId, institutionId])
+  @@index([clubId])
+  @@index([studentId])
+  @@map("club_members")
+}
+
+model KPSEARegistration {
+  id                    String @id @default(cuid())
+  institutionId         String
+  studentId             String
+  registrationNumber    String @unique
+  entryYear             Int
+  targetSecondarySchool String?
+  performanceIndex      Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([institutionId, studentId])
+  @@index([institutionId])
+  @@map("kpsear_registrations")
+}
+
+model KJSEARegistration {
+  id                    String @id @default(cuid())
+  institutionId         String
+  studentId             String
+  registrationNumber    String @unique
+  entryYear             Int
+  targetSecondarySchool String?
+  performanceIndex      Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([institutionId, studentId])
+  @@index([institutionId])
+  @@map("kjsea_registrations")
+}
+
+// ============================================================================
+// HR & PAYROLL DOMAIN MODELS
+// ============================================================================
+
+model StaffRole {
+  id            String @id @default(cuid())
+  institutionId String
+  key           String
+  name          String
+  description   String?
+  isSystem      Boolean @default(false)
+  priority      Int @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([institutionId, key])
+  @@index([institutionId])
+  @@map("staff_roles")
+}
+
+model Staff {
+  id                String @id @default(cuid())
+  institutionId     String
+  userId            String @unique
+  roleId            String
+  employmentType    String
+  dateOfJoining     DateTime
+  dateOfBirth       DateTime?
+  phone             String
+  address           String?
+  emergencyContact  String?
+  emergencyPhone    String?
+  photoUrl          String?
+  status            String @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([institutionId, userId])
+  @@index([institutionId])
+  @@index([roleId])
+  @@map("staff")
+}
+
+model EmploymentType {
+  id            String @id @default(cuid())
+  institutionId String
+  key           String
+  name          String
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([institutionId, key])
+  @@map("employment_types")
+}
+
+model LeaveType {
+  id                  String @id @default(cuid())
+  institutionId       String
+  key                 String
+  name                String
+  daysPerYear         Float @default(21)
+  isPaid              Boolean @default(true)
+  requiresApproval    Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([institutionId, key])
+  @@index([institutionId])
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id                String @id @default(cuid())
+  staffId           String
+  leaveTypeId       String
+  leaveType         LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  startDate         DateTime
+  endDate           DateTime
+  daysRequested     Float
+  status            String @default("PENDING")
+  reason            String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([staffId])
+  @@index([leaveTypeId])
+  @@index([status])
+  @@map("leave_requests")
+}
+
+model EmergencyContact {
+  id            String @id @default(cuid())
+  staffId       String
+  name          String
+  relationship  String
+  phone         String
+  isPrimary     Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([staffId])
+  @@map("emergency_contacts")
+}
+
+model StatutoryDeduction {
+  id                String @id @default(cuid())
+  institutionId     String
+  year              Int
+  payeBands         String
+  nssfRate          Float @default(0.06)
+  shifRate          Float @default(0.0275)
+  housingLevyRate   Float @default(0.015)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([institutionId, year])
+  @@index([institutionId])
+  @@map("statutory_deductions")
+}
+
+model PayeBand {
+  id                      String @id @default(cuid())
+  statutoryDeductionId    String
+  minSalary               Float
+  maxSalary               Float?
+  rate                    Float
+
+  @@unique([statutoryDeductionId, minSalary])
+  @@index([statutoryDeductionId])
+  @@map("paye_bands")
+}
+
+model EmployeeRate {
+  id                      String @id @default(cuid())
+  statutoryDeductionId    String
+  employeePercent         Float
+  employerPercent         Float
+  maxMonthly              Float
+
+  @@unique([statutoryDeductionId, employeePercent])
+  @@index([statutoryDeductionId])
+  @@map("employee_rates")
+}
+
+model Payslip {
+  id                String @id @default(cuid())
+  staffId           String
+  payrollRunId      String
+  periodStart       DateTime
+  periodEnd         DateTime
+  basicSalary       Float
+  grossSalary       Float
+  totalDeductions   Float
+  netSalary         Float
+  taxCode           String?
+  payPeriod         String
+  payDate           DateTime
+  status            String @default("DRAFT")
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([staffId])
+  @@index([status])
+  @@map("payslips")
+}
+
+model PayslipLine {
+  id                String @id @default(cuid())
+  payslipId         String
+  description       String
+  amount            Float
+  type              String
+  taxCategory       String?
+  createdAt         DateTime @default(now())
+
+  @@index([payslipId])
+  @@map("payslip_lines")
+}
+
+model Contract {
+  id                String @id @default(cuid())
+  staffId           String
+  title             String
+  basicSalary       Float
+  benefits          Json @default("[]")
+  startDate         DateTime
+  endDate           DateTime?
+  isActive          Boolean @default(true)
+  paymentSchedule   String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([staffId])
+  @@map("contracts")
+}
+
+// ============================================================================
+// CONSENT & PRIVACY
+// ============================================================================
+
+model ConsentPreference {
+  id            String @id @default(cuid())
+  userId        String
+  institutionId String?
+  purpose       String
+  channel       NotificationChannel
+  granted       Boolean @default(false)
+  grantedAt     DateTime?
+  revokedAt     DateTime?
+  source        String
+  evidence      String?
+  metadata      Json @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, institutionId, purpose, channel])
+  @@index([userId])
+  @@index([institutionId])
+  @@index([purpose])
+  @@map("consent_preferences")
+}
+
+// ============================================================================
+// BOARDING MODULE MODELS
+// ============================================================================
+
+model Dormitory {
+  id                  String @id @default(cuid())
+  institutionId       String
+  name                String
+  type                String
+  capacity            Int
+  currentOccupancy    Int @default(0)
+  wing                String @default("SCHOOL")
+  isActive            Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("dormitories")
+}
+
+model Room {
+  id                  String @id @default(cuid())
+  dormitoryId         String
+  roomNumber          String
+  roomType            RoomType
+  capacity            Int
+  currentStudents     Int @default(0)
+  wing                String @default("SCHOOL")
+  isActive            Boolean @default(true)
+  features            String[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([dormitoryId])
+  @@map("rooms")
+}
+
+model RoomAssignment {
+  id              String @id @default(cuid())
+  roomId          String
+  studentId       String
+  assignedAt      DateTime @default(now())
+  assignedBy      String
+  leaseStart      DateTime
+  leaseEnd        DateTime?
+  isCurrent       Boolean @default(true)
+  rentAmount      Float
+
+  @@unique([roomId, studentId, isCurrent])
+  @@index([roomId])
+  @@map("room_assignments")
+}
+
+model ExeatPass {
+  id              String @id @default(cuid())
+  studentId       String
+  requestedBy     String
+  reason          String
+  startDate       DateTime
+  endDate         DateTime
+  status          ExeatStatus @default(PENDING)
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([studentId])
+  @@index([status])
+  @@map("exeat_passes")
+}
+
+model BoardingFee {
+  id              String @id @default(cuid())
+  institutionId   String
+  name            String
+  description     String?
+  amount          Float
+  isMandatory     Boolean @default(true)
+  applicableGrades String[]
+  wing            String @default("SCHOOL")
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("boarding_fees")
+}
+
+model DormitoryRule {
+  id              String @id @default(cuid())
+  institutionId   String
+  title           String
+  description     String
+  category        DormitoryCategory
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("dormitory_rules")
+}
+
+// ============================================================================
+// TRANSPORT MODULE MODELS
+// ============================================================================
+
+model Vehicle {
+  id                  String @id @default(cuid())
+  institutionId       String
+  registrationNumber  String @unique
+  model               String
+  year                Int
+  capacity            Int
+  fuelType            FuelType
+  licenseExpires      DateTime
+  insuranceExpires    DateTime
+  status              VehicleStatus @default(ACTIVE)
+  purchasedDate       DateTime
+  purchasePrice       Float?
+  notes               String?
+  wing                String @default("SCHOOL")
+  isActive            Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("vehicles")
+}
+
+model Route {
+  id              String @id @default(cuid())
+  institutionId   String
+  name            String
+  description     String?
+  wing            String @default("SCHOOL")
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("routes")
+}
+
+model RouteStop {
+  id              String @id @default(cuid())
+  routeId         String
+  stopName        String
+  order           Int
+  latitude        Float?
+  longitude       Float?
+  contactPhone    String?
+  timeWindow      String
+  isActive        Boolean @default(true)
+
+  @@unique([routeId, order])
+  @@index([routeId])
+  @@map("route_stops")
+}
+
+model RouteAssignment {
+  id              String @id @default(cuid())
+  routeId         String
+  studentId       String
+  assignedAt      DateTime @default(now())
+  assignedBy      String
+  isCurrent       Boolean @default(true)
+
+  @@unique([routeId, studentId, isCurrent])
+  @@index([routeId])
+  @@map("route_assignments")
+}
+
+model VehicleMaintenance {
+  id                  String @id @default(cuid())
+  vehicleId           String
+  maintenanceType     String
+  description         String
+  plannedDate         DateTime
+  completedDate       DateTime?
+  cost                Float
+  mileageAtService    Int
+  performedBy         String?
+  status              String @default("PENDING")
+
+  @@index([vehicleId])
+  @@map("vehicle_maintenance")
+}
+
+model TransportFee {
+  id              String @id @default(cuid())
+  institutionId   String
+  name            String
+  description     String?
+  amount          Float
+  isMandatory     Boolean @default(true)
+  applicableGrades String[]
+  wing            String @default("SCHOOL")
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("transport_fees")
+}
+
+// ============================================================================
+// LIBRARY MODULE MODELS
+// ============================================================================
+
+model Book {
+  id                  String @id @default(cuid())
+  institutionId       String
+  title               String
+  isbn                String?
+  author              String
+  coAuthor            String?
+  publisher           String?
+  publicationYear     Int
+  category            String
+  description         String?
+  pageCount           Int?
+  language            String @default("ENGLISH")
+  copiesTotal         Int @default(1)
+  copiesAvailable     Int @default(1)
+  coverImageUrl       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("books")
+}
+
+model BorrowRecord {
+  id              String @id @default(cuid())
+  bookId          String
+  studentId       String
+  issuedAt        DateTime @default(now())
+  dueDate         DateTime
+  returnedAt      DateTime?
+  status          String @default("ISSUED")
+  fineAmount      Float @default(0)
+  finePaid        Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([bookId, studentId, status])
+  @@index([bookId])
+  @@index([studentId])
+  @@map("borrow_records")
+}
+
+model ReserveRecord {
+  id              String @id @default(cuid())
+  bookId          String
+  studentId       String
+  requestedAt     DateTime @default(now())
+  fulfilledAt     DateTime?
+  status          String @default("PENDING")
+
+  @@unique([bookId, studentId, status])
+  @@index([bookId])
+  @@index([studentId])
+  @@map("reserve_records")
+}
+
+model LibraryFine {
+  id              String @id @default(cuid())
+  institutionId   String
+  fineName        String
+  description     String
+  amount          Float
+  fineType        String
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("library_fines")
+}
+
+model LibraryCategory {
+  id              String @id @default(cuid())
+  institutionId   String
+  name            String
+  description     String?
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("library_categories")
+}
+
+// ============================================================================
+// STUDENT & ATTENDANCE
+// ============================================================================
+
+model Student {
+  id            String @id @default(cuid())
+  institutionId String
+  userId        String? @unique
+  firstName     String
+  lastName      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([institutionId])
+  @@map("students")
+}
+
+model Attendance {
+  id            String @id @default(cuid())
+  institutionId String
+  studentId     String
+  date          DateTime
+  status        String
+
+  @@map("attendances")
+}
+
+model SchoolCalendarEvent {
+  id            String @id @default(cuid())
+  institutionId String
+  title         String
+  startDate     DateTime
+  endDate       DateTime
+
+  @@map("school_calendar_events")
+}
+
+model SchoolRelation {
+  id              String @id @default(cuid())
+  institutionId   String
+  type            String
+  relatedId       String
+  details         String?
+  createdAt       DateTime @default(now())
+
+  @@unique([institutionId, type, relatedId])
+  @@index([institutionId])
+  @@index([type])
+  @@map("school_relations")
+}
+
+model ParishRelation {
+  id              String @id @default(cuid())
+  institutionId   String
+  type            String
+  relatedId       String
+  details         String?
+  createdAt       DateTime @default(now())
+
+  @@unique([institutionId, type, relatedId])
+  @@index([institutionId])
+  @@index([type])
+  @@map("parish_relations")
+}

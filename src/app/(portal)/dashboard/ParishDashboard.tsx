@@ -3,8 +3,8 @@
  * Provides: Parish operations overview, communications, events, finance
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { useSearchParams } from "next/navigation"
 
 export function ParishDashboard() {

@@ -1,11 +1,11 @@
 /* School Transport - SaintsHub School Portal
 Provides: Fleet management, route assignments, transport fee tracking
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -448,3 +448,5 @@ export function SchoolTransport() {
     </div>
   )
 }
+
+export default SchoolTransport

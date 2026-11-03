@@ -95,6 +95,7 @@ interface LibraryStats {
   returnedFineTotal: number
 }
 
+export function TransportDashboard() {
   return (
     <div className="p-4 sm:p-6">
       <header className="mb-6">

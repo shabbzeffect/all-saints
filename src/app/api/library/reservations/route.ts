@@ -1,4 +1,5 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Reservation {
   id: string
@@ -25,63 +26,33 @@ export async function GET(request: Request) {
     const memberType = searchParams.get("memberType") || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock reservation data
-    const mockReservations: Reservation[] = [
-      {
-        id: "reserve-001",
-        bookId: "book-004",
-        bookTitle: "Africa's Future",
-        memberId: "std-001",
-        memberName: "John Omondi",
-        memberType: "STUDENT",
-        requestedDate: new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0],
-        expiryDate: new Date(Date.now() + 10 * 86400000).toISOString().split("T")[0],
-        status: "ACTIVE",
-      },
-      {
-        id: "reserve-002",
-        bookId: "book-002",
-        bookTitle: "A Brief History of Time",
-        memberId: "std-002",
-        memberName: "Jane Doe",
-        memberType: "STUDENT",
-        requestedDate: new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0],
-        expiryDate: new Date(Date.now() + 5 * 86400000).toISOString().split("T")[0],
-        status: "ACTIVE",
-      },
-      {
-        id: "reserve-003",
-        bookId: "book-001",
-        bookTitle: "The Great Gatsby",
-        memberId: "std-003",
-        memberName: "Peter Omondi",
-        memberType: "STUDENT",
-        requestedDate: new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0],
-        expiryDate: new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0],
-        status: "EXPIRED",
-      },
-    ]
-
-    let filteredReservations = mockReservations
+    const where: any = {
+      institutionId: undefined, // Will be set by middleware/auth
+    }
 
     if (status) {
-      filteredReservations = filteredReservations.filter((r) => r.status === status)
+      where.status = status
     }
     if (memberType) {
-      filteredReservations = filteredReservations.filter((r) => r.memberType === memberType)
+      where.OR = [
+        { student: { type: memberType } },
+      ]
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredReservations = filteredReservations.filter(
-        (r) => r.bookTitle.toLowerCase().includes(termLower) ||
-        r.memberName.toLowerCase().includes(termLower) ||
-        r.id.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { book: { title: { contains: searchTerm, mode: "insensitive" } } },
+        { student: { name: { contains: searchTerm, mode: "insensitive" } } },
+      ]
     }
+
+    const reservations = await prisma.reserveRecord.findMany({
+      where,
+      orderBy: { requestedAt: "desc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredReservations,
+      data: reservations,
     })
   } catch (error) {
     console.error("Library reservations error:", error)
@@ -96,14 +67,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new reservation record
-    const newReservation: Reservation = {
-      id: `reserve-${Date.now().toString(36)}`,
-      ...body,
-      requestedDate: new Date().toISOString().split("T")[0],
-      expiryDate: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0], // 14 days default
-      status: "ACTIVE",
-    }
+    const newReservation = await prisma.reserveRecord.create({
+      data: {
+        bookId: body.bookId,
+        studentId: body.memberId,
+        requestedAt: new Date().toISOString(),
+        expiryDate: new Date(Date.now() + 14 * 86400000).toISOString(), // 14 days default
+        status: "ACTIVE",
+        institutionId: "INSTITUTION_ID_PLACEHOLDER", // Will be set by middleware
+      },
+    })
 
     return NextResponse.json({
       success: true,

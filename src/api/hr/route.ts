@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 /* HR & Payroll API Routes - SaintsHub */
 import { NextResponse } from "next/server"
-import { prisma } from "@/src/server/db"
+import { prisma } from "@/server/db"
 
 export async function GET(request: Request) {
   try {
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
           where: { institutionId: "inst-school-1" },
         })
 
-        const result = leaveTypes.map((lt) => {
+        const result = leaveTypes.map((lt: { key: string; name: string; daysPerYear: number }) => {
           const approved = balance._sum.daysRequested || 0
           const perYear = lt.daysPerYear
           return {

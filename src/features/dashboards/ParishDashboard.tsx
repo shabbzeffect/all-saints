@@ -107,10 +107,10 @@ export function ParishDashboard({ groups, donations, events }: ParishDashboardPr
               </div>
               <div className="flex-1">
                 <p className="text-anglican-purple font-medium text-sm">{metric.title}</p>
-                <p className="text-2xl font-bold {metric.variant === "success" ? "text-success" : metric.variant === "default" ? "text-anglican-purple" : "text-destructive"}">
+                <p className="text-2xl font-bold {metric.variant === 'success' ? 'text-success' : metric.variant === 'default' ? 'text-anglican-purple' : 'text-destructive'}">
                   {metric.value}
                 </p>
-                <p className="text-sm text-muted/60 {metric.variant === "success" ? "text-success" : metric.variant === "default" ? "text-anglican-purple" : "text-muted/60"}">
+                <p className="text-sm text-muted/60 {metric.variant === 'success' ? 'text-success' : metric.variant === 'default' ? 'text-anglican-purple' : 'text-muted/60'}">
                   {metric.subtitle}
                 </p>
               </div>

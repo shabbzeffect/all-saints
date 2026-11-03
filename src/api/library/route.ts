@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 /* Library Module API Routes - SaintsHub */
 import { NextResponse } from "next/server"
-import { prisma } from "@/src/server/db"
+import { prisma } from "@/server/db"
 
 export async function GET(request: Request) {
   try {
@@ -282,7 +282,7 @@ export async function GET(request: Request) {
         })
 
         // Calculate total fines
-        const totalFine = unpaidBorrows.reduce((sum, borrow) => sum + (borrow.fineAmount || 0), 0)
+        const totalFine = unpaidBorrows.reduce((sum: number, borrow: { fineAmount: number }) => sum + (borrow.fineAmount || 0), 0)
 
         return NextResponse.json({
           borrows: unpaidBorrows,

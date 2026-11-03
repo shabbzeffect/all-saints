@@ -1,12 +1,17 @@
 /* Enrolment Service - SaintsHub School SIS
 Handles: Student enrolment, grade promotions, term transfers
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
-import { formatCurrency, normalizePhone } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
-import { AdmissionStatus, GradeLevel } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  AdmissionStatus,
+  GradeLevel,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
+import { formatCurrency } from "@/lib/config"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // ENROLMENT CREATION & TRANSFERS

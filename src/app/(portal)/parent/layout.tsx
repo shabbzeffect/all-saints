@@ -2,10 +2,11 @@
 Provides: mobile-friendly wrapper for parent/guardian portal
 Shows: children linked to guardian, quick access to fees/receipts/reports
 */
+"use client"
 import { Inter } from "next/font/google"
 import { cn } from "@/lib/config"
 import Link from "next/link"
-import { BuildingHouse, Menu } from "lucide-react"
+import { Building2, Menu } from "lucide-react"
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
@@ -29,13 +30,7 @@ export function ParentLayout({ children, title }: ParentLayoutProps) {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-800">
-      <Inter
-        id="inter-parent"
-        weight="400"
-        display="swap"
-        className="antialiased"
-      />
+      <div className={`${inter.className} min-h-screen bg-white dark:bg-gray-800`}>
 
       {/* Parent Header/Breadcrumb */}
       <header className="border-b border-border bg-white/90 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 left-0 right-0 z-50">
@@ -43,21 +38,21 @@ export function ParentLayout({ children, title }: ParentLayoutProps) {
           <div className="flex items-center gap-3">
             {activeInstitution === "school" && (
               <div className="flex items-center gap-2">
-                <BuildingHouse className="h-5 w-5 text-anglican-blue" />
+                <Building2 className="h-5 w-5 text-anglican-blue" />
                 <span className="font-medium text-anglican-blue">SaintsHub School</span>
               </div>
             )}
             {activeInstitution === "parish" && (
               <div className="flex items-center gap-2">
-                <BuildingHouse className="h-5 w-5 text-anglican-purple" />
+                <Building2 className="h-5 w-5 text-anglican-purple" />
                 <span className="font-medium text-anglican-purple">SaintsHub Parish</span>
               </div>
             )}
             {activeInstitution === null && (
               <div className="flex items-center gap-2">
-                <BuildingHouse className="h-5 w-5 text-anglican-blue" />
+                <Building2 className="h-5 w-5 text-anglican-blue" />
                 <span className="font-medium text-anglican-blue">SaintsHub School</span>
-                <BuildingHouse className="h-5 w-5 text-anglican-purple" />
+                <Building2 className="h-5 w-5 text-anglican-purple" />
                 <span className="font-medium text-anglican-purple">Parish</span>
               </div>
             )}

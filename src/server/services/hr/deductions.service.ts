@@ -7,7 +7,7 @@ Provides: statutory deduction calculations per Kenyan law (2024)
 - Housing Levy (1.5% employer only)
 */
 
-import { prisma } from "@/src/server/db"
+import { prisma } from "@/server/db"
 
 /**
  * Calculate all statutory deductions for a given gross salary

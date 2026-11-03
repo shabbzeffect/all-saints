@@ -90,7 +90,7 @@ export function BoardingDashboard({ dormitories }: BoardingDashboardProps) {
             </div>
             <div>
               <p className="text-anglican-blue font-medium text-sm">Occupancy Rate</p>
-              <p className="text-2xl font-bold {overallOccupancyRate >= 80 ? "text-danger" : overallOccupancyRate >= 50 ? "text-warning" : "text-success"}">
+              <p className="text-2xl font-bold {overallOccupancyRate >= 80 ? 'text-danger' : overallOccupancyRate >= 50 ? 'text-warning' : 'text-success'}">
                 {overallOccupancyRate}%
               </p>
             </div>

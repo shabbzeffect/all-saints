@@ -4,9 +4,10 @@
  * Sizes: sm, default, lg
  */
 
+import React from "react"
 import { cn } from "@/lib/config"
 
-interface BadgeProps extends ReactReact.ButtonHTMLAttributes<HTMLButtonElement> {
+interface BadgeProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "link"
   size?: "default" | "sm" | "lg"
   asChild?: boolean
@@ -27,14 +28,21 @@ const badgeSizes = {
   lg: "inline-flex items-center rounded-md border border-border-dark/30 rounded-md px-4 py-2 text-sm font-medium",
 }
 
-export const Badge = React.forwardRef<HTMLButtonElement, BadgeProps>({
-  className: "inline-flex items-center rounded-md",
-  variant: "default",
-  size: "default",
-  asChild: false,
-  ...props,
+export const Badge = React.forwardRef<HTMLButtonElement, BadgeProps>(({ className, variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
+  const Component = asChild ? React.Fragment : "button"
+  return (
+    <Component
+      ref={ref}
+      className={cn(
+        badgeSizes[size],
+        badgeVariants[variant],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </Component>
+  )
 })
 
 Badge.displayName = "Badge"
-
-export { Badge }

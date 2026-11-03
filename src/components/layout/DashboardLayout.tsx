@@ -7,7 +7,8 @@ import Link from "next/link"
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
-import { LogOut, Settings, Shield, BuildingHouse, GraduationCap, Users, Heart, Calendar, MessageCircle, Mail, Phone, Users2, Folder, Search, Map, X } from "lucide-react"
+import { LogOut, Settings, Shield, Building2, GraduationCap, Users, Heart, Calendar, MessageCircle, Mail, Phone, Users2, Folder, Search, Map, X } from "lucide-react"
+import { Avatar } from "@/components/ui/avatar/Avatar"
 
 const inter = Inter({ weight: ["400", "500", "600", "700"], subsets: ["latin"] })
 
@@ -46,13 +47,7 @@ export function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen">
-      <Inter
-        id="inter"
-        weight="400"
-        display="swap"
-        className="antialiased"
-      />
+    <div className={`${inter.className} min-h-screen`}>
 
       {/* Topbar with Institution Switcher */}
       {showNav && (
@@ -65,7 +60,7 @@ export function DashboardLayout({
                   onClick={() => toggleInstitution("parish")}
                   className="flex items-center gap-2 px-3 py-1 rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
                 >
-                  <BuildingHouse className="h-4 w-4" />
+                  <Building2 className="h-4 w-4" />
                   Parish
                 </button>
               )}
@@ -74,15 +69,15 @@ export function DashboardLayout({
                   onClick={() => toggleInstitution("school")}
                   className="flex items-center gap-2 px-3 py-1 rounded-md border border-border hover:bg-accent hover-text-accent-foreground transition-colors text-sm"
                 >
-                  <BuildingHouse className="h-4 w-4" />
+                  <Building2 className="h-4 w-4" />
                   School
                 </button>
               )}
               {/* Default: show both if neither selected */}
               {activeInstitution === null && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <BuildingHouse className="h-4 w-4" /> School
-                  <BuildingHouse className="h-4 w-4" /> Parish
+                  <Building2 className="h-4 w-4" /> School
+                  <Building2 className="h-4 w-4" /> Parish
                 </div>
               )}
             </div>
@@ -97,13 +92,13 @@ export function DashboardLayout({
               )}
               {activeInstitution === "parish" && (
                 <h1 className="text-xl font-semibold text-foreground">
-                  <BuildingHouse className="h-4 w-4 mr-2" />
+                  <Building2 className="h-4 w-4 mr-2" />
                   Parish Management
                 </h1>
               )}
               {activeInstitution === null && (
                 <h1 className="text-xl font-semibold text-foreground">
-                  <BuildingHouse className="h-4 w-4 mr-2" />
+                  <Building2 className="h-4 w-4 mr-2" />
                   SaintsHub
                 </h1>
               )}
@@ -127,7 +122,7 @@ export function DashboardLayout({
               <button
                 aria-label="Notifications"
                 className="relative rounded-full"
-                onClick={() => /* open notifications */}
+                onClick={() => {}}
               >
                 <span
                   className="absolute -top-1 right-1 bg-primary text-primary-foreground min-w-5 min-h-5 rounded-full text-xs font-bold flex items-center justify-center"

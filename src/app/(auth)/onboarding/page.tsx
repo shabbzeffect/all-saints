@@ -1,11 +1,12 @@
 /* Onboarding Page - SaintsHub
-Provides: Institution selection (School | Parish), role selection, initial setup
+Provides: New user onboarding, institution setup, role selection
+"use client"
 */
 import { cn } from "@/lib/config"
 import { Input, Button } from "@/components/ui"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Wing } from "@prisma/client"
+import { GraduationCap, Building2, Users, Heart, Shield, Users2 } from "lucide-react"
 
 export function OnboardingPage() {
   const [wing, setWing] = useState<"school" | "parish" | null>(null)
@@ -60,7 +61,7 @@ export function OnboardingPage() {
                 wing === "parish" && "border-secondary bg-secondary/5 text-secondary"
               )}
               >
-                <BuildingHouse className="h-6 w-6" />
+                <Building2 className="h-6 w-6" />
                 <span>Parish</span>
                 <span className="text-xs">ACK Mushililie Parish</span>
               </button>
@@ -75,8 +76,7 @@ export function OnboardingPage() {
         </div>
 
         {/* Role Selection */}
-        {wing && (
-          <div className="mb-6 p-6 rounded-xl border border-border bg-card">
+        <div className="mb-6 p-6 rounded-xl border border-border bg-card">
             <h2 className="text-xl font-semibold text-foreground mb-4">
               Select Your Role
             </h2>
@@ -152,7 +152,7 @@ export function OnboardingPage() {
                       selectedRole === "PARISH_SECRETARY" && "border-primary bg-primary/5 text-primary"
                     )}
                   >
-                    <BuildingHouse className="h-6 w-6" />
+<Building2 className="h-6 w-6" />
                     <span>Secretary</span>
                   </button>
                 </>
@@ -190,13 +190,12 @@ export function OnboardingPage() {
               </p>
             )}
           </div>
-        )}
 
         {/* Continue Button */}
         {wing && selectedRole && (
           <Button
             onClick={handleContinue}
-            disabled={!!router.isReady}
+            disabled={false}
             className="w-full py-3 px-4 mt-6 text-lg font-medium"
           >
             Continue to Dashboard
@@ -211,6 +210,7 @@ export function OnboardingPage() {
           </p>
         </div>
       </div>
-    </div>
   )
 }
+
+export default OnboardingPage

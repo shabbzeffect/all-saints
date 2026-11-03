@@ -31,7 +31,8 @@ export function format(date: Date | string | null | undefined, format: "dd/MM/yy
           "January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December",
         ]
-        return `${months[d.getMonth()]} ${d.getDate()}, ${year}`
+        const yearMmm = d.getFullYear()
+        return `${months[d.getMonth()]} ${d.getDate()}, ${yearMmm}`
 
       default:
         return formatDate(d, format)
@@ -50,7 +51,7 @@ export function parse(dateStr: string, format: "dd/MM/yyyy" | "yyyy-MM-dd" | "MM
   let date: Date
 
   switch (format) {
-    case "dd/MM/yyyy":
+    case "dd/MM/yyyy": {
       const parts1 = dateStr.split("/")
       if (parts1.length === 3) {
         const day = parseInt(parts1[0])
@@ -61,13 +62,17 @@ export function parse(dateStr: string, format: "dd/MM/yyyy" | "yyyy-MM-dd" | "MM
           if (!isNaN(date.getTime())) return date
         }
         break
+      }
+      break
+    }
 
-    case "yyyy-MM-dd":
+    case "yyyy-MM-dd": {
       const parsed = new Date(dateStr)
       if (!isNaN(parsed.getTime())) return parsed
       break
+    }
 
-    case "MM/dd/yyyy":
+    case "MM/dd/yyyy": {
       const parts2 = dateStr.split("/")
       if (parts2.length === 3) {
         const month = parseInt(parts2[0])
@@ -80,6 +85,7 @@ export function parse(dateStr: string, format: "dd/MM/yyyy" | "yyyy-MM-dd" | "MM
         break
       }
       break
+    }
   }
 
   return null

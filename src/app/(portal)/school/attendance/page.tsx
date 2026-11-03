@@ -1,11 +1,11 @@
 /* School Attendance - SaintsHub School Portal
 Provides: Attendance tracking, summary, and marking
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -106,10 +106,10 @@ export function SchoolAttendance() {
         ? true
         : record.studentName
             .toLowerCase()
-            .includes(filters.searchTerm.toLowerCase()) ||
+            .includes((filters.searchTerm || "").toLowerCase()) ||
             record.admissionNumber
               .toLowerCase()
-              .includes(filters.searchTerm.toLowerCase())
+              .includes((filters.searchTerm || "").toLowerCase())
 
     return matchesGrade && matchesStatus && matchesSearch
   })
@@ -255,7 +255,7 @@ export function SchoolAttendance() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableClassName>Date</TableClassName>
+                    <TableCell>Date</TableCell>
                     <TableCell>Student</TableCell>
                     <TableCell className="text-right">Grade</TableCell>
                     <TableCell className="text-center">Status</TableCell>
@@ -300,7 +300,7 @@ export function SchoolAttendance() {
                           size="icon"
                           variant="link"
                           className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                          aria="Mark attendance"
+                          aria-label="Mark attendance"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -420,3 +420,5 @@ export function SchoolAttendance() {
     </div>
   )
 }
+
+export default SchoolAttendance

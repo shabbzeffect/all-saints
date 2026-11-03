@@ -3,12 +3,11 @@
  * Provides: Parent/guardian overview, children, fee balances, quick actions
  */
 
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/config"
-import { formatDate } from "@/lib/dates"
 
 interface StudentSummary {
   id: string

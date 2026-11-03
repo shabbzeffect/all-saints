@@ -1,11 +1,11 @@
 /* Payments Service - SaintsHub School Finance
 Handles: Payment processing, M-Pesa callback handling, bank transactions, refunds
 */
-import { prisma } from "../../db"
+import { prisma } from "../../../db"
 import { AuditAction, AuditEvent } from "@prisma/client"
 import { formatCurrency, parseCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent } from "../../../auth/auth"
+import { createBackgroundJob } from "../../../auth/auth"
 import { normalizePhone } from "@/lib/phone"
 
 // ============================================================================
@@ -91,7 +91,7 @@ export async function processMpesaCallback({
       institutionId,
       invoiceNumber: accountReference,
     },
-    include { student: true },
+    include: { student: true },
   })
 
   // Or try to find by student admission number
@@ -193,7 +193,7 @@ export async function processMpesaCallback({
       transactionId: MpesaReceiptNumber,
       status: isSuccess ? "SUCCESS" : "FAILED",
     },
-    include {
+    include: {
       student: true,
       invoice: true,
     },
@@ -428,7 +428,7 @@ export async function processRefund({
 }) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId, institutionId },
-    include { invoice: true, student: true },
+    include: { invoice: true, student: true },
   })
 
   if (!payment) {
@@ -454,7 +454,7 @@ export async function processRefund({
       status: "REFUNDED",
       processedBy: processedById,
     },
-    include {
+    include: {
       student: true,
       invoice: true,
     },
@@ -538,3 +538,5 @@ export type {
   BankTransaction,
   PaymentMethod
 }
+
+

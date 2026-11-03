@@ -1,11 +1,11 @@
 /* School Students - SaintsHub School Portal
 Provides: Student list, search, enrollment, and basic student information
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/spinner"
 import { useState, useEffect, useCallback } from "react"
@@ -214,7 +214,7 @@ export function Students({ students, onNavigate, onViewStudent }: StudentsProps)
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableClassName>Adm No.</TableClassName>
+                    <TableCell>Adm No.</TableCell>
                     <TableCell>Student</TableCell>
                     <TableCell className="text-right">Grade/Stream</TableCell>
                     <TableCell className="text-center">Status</TableCell>
@@ -246,13 +246,13 @@ export function Students({ students, onNavigate, onViewStudent }: StudentsProps)
                       </TableCell>
                       <TableCell className="text-right">
                         {student.isBoarding
-                          ? KSh Math.max(0, student.feeBalance).toLocaleString()
+                          ? "KSh " + Math.max(0, (student as any).feeBalance).toLocaleString()
                           : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="link"
-                          size="icon"
+                          size="sm"
                           aria-label="View student details"
                         >
                           <svg
@@ -321,3 +321,5 @@ export function Students({ students, onNavigate, onViewStudent }: StudentsProps)
     </div>
   )
 }
+
+export default Students

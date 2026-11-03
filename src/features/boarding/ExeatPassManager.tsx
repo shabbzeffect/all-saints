@@ -77,7 +77,7 @@ export function ExeatPassManager() {
 
   // Fetch passes from API
   const fetchPasses = useCallback(async () => {
-    const response = await fetch(`/api/boarding/ exeat-passes/pending${searchParams.toString() ? `?${searchParams.toString()` : ""}`, {
+    const response = await fetch(`/api/boarding/exeat-passes/pending${searchParams.toString() ? `?${searchParams.toString()}` : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -107,7 +107,7 @@ export function ExeatPassManager() {
   )
 
   const approvePass = useCallback(async (passId: string, approvedBy: string) => {
-    const response = await fetch(`/api/boarding/ exeat-passes/approve?id=${passId}`, {
+    const response = await fetch(`/api/boarding/exeat-passes/approve?id=${passId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +125,7 @@ export function ExeatPassManager() {
   }, [fetchPasses])
 
   const rejectPass = useCallback(async (passId: string, approvedBy: string, notes?: string) => {
-    const response = await fetch(`/api/boarding/ exeat-passes/approve?id=${passId}`, {
+    const response = await fetch(`/api/boarding/exeat-passes/approve?id=${passId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -394,7 +394,7 @@ export function ExeatPassManager() {
                     <TableCell className="text-center">
                       <div>{pass.startDate} - {pass.endDate}</div>
                     </TableCell>
-                    <TableCell className="text-center">{pass.reason}</div>
+                    <TableCell className="text-center">{pass.reason}</TableCell>
                     <TableCell className="text-center">
                       <Badge
                         variant={pass.status === "PENDING" ? "secondary" : pass.status === "APPROVED" ? "default" : "destructive"}

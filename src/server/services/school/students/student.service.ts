@@ -1,11 +1,24 @@
 /* Student Service - SaintsHub School SIS
 Handles: Student CRUD, admissions workflow, guardian management, enrolments, promotions
 */
-import { prisma } from "../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
-import { formatCurrency, parseCurrency, hasRole, requirePermission } from "@/lib/config"
-import { createNotification, markNotificationSent } from "./notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  GradeLevel,
+  StudentStatus,
+  AdmissionStatus,
+  GuardianRelationship,
+  JobType,
+  NotificationChannel,
+  Student,
+  Guardian,
+  Admission,
+  Enrolment,
+  StudentGuardian,
+} from "@prisma/client"
+import { formatCurrency, parseCurrency, hasRole, requirePermission, normalizePhone } from "@/lib/config"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // STUDENT CRUD & SEARCH
@@ -53,7 +66,7 @@ export async function getStudents({
       where,
       include: {
         grade: true,
-        stream: true,
+        streams: true,
         enrolments: {
           include: { term: true },
         },
@@ -91,7 +104,7 @@ export async function getStudentById({
     where: { id: studentId, institutionId },
     include: {
       grade: true,
-      stream: true,
+      streams: true,
       enrolments: {
         include: { term: true },
         orderBy: { term: { ordinal: "asc" } },
@@ -107,10 +120,8 @@ export async function getStudentById({
           },
         },
       },
-      admissions: {
-        orderBy: { createdAt: "desc" },
-      },
-    })
+    },
+  })
 
     if (!student) {
       throw new Error("Student not found or not accessible in this institution")
@@ -195,7 +206,7 @@ export async function createStudent({
     },
     include: {
       grade: true,
-      stream: true,
+      streams: true,
     },
   })
 
@@ -298,7 +309,7 @@ export async function updateStudent({
     data,
     include: {
       grade: true,
-      stream: true,
+      streams: true,
     },
   })
 
@@ -474,7 +485,7 @@ export async function updateAdmissionStatus({
   // If offer extended, create notification to parent
   if (nextStatus === AdmissionStatus.OFFER_EXTENDED) {
     await createNotification({
-      recipientId: admission.createdById || "",
+      recipientId: "",
       institutionId,
       channel: NotificationChannel.EMAIL,
       subject: "Admission Offer - All Saints Mushililie Academy",
@@ -960,8 +971,10 @@ export async function promoteStudents({
     where: { id: promotionId, institutionId },
     data: {
       status: "COMPLETED",
-      ...(results.length > 0 && { notes: `${results.length} students promoted successfully` }),
-    }),
+      ...(results.length > 0 && {
+        notes: `${results.length} students promoted successfully`,
+      }),
+    },
   })
 
   // Audit log
@@ -1003,20 +1016,6 @@ export async function promoteStudents({
   }
 
   return results
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Normalize Kenyan phone number to +254 format
- */
-function normalizePhone(phone: string): string {
-  let normalized = phone.trim()
-  normalized = normalized.replace(/^\+?254?/, "")
-  normalized = normalized.replace(/^0/, "")
-  return `+254${normalized}`
 }
 
 // Export types for use in route handlers

@@ -1,11 +1,19 @@
 /* Invoices Service - SaintsHub School Finance
 Handles: Invoice generation, payment recording, status tracking
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  DiscountType,
+  InvoiceStatus,
+  JobType,
+  NotificationChannel,
+  PaymentMethod,
+} from "@prisma/client"
 import { formatCurrency, parseCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent } from "../../../auth/auth"
+import { createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // INVOICE GENERATION
@@ -109,7 +117,7 @@ export async function generateInvoiceWorkflow({
       status: InvoiceStatus.DRAFT,
       lines,
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -184,7 +192,7 @@ export async function getInvoices({
   const [invoices, total] = await prisma.$transaction([
     prisma.invoice.findMany({
       where,
-      include {
+      include: {
         student: {
           include: { grade: true },
         },
@@ -232,7 +240,7 @@ export async function recordPayment({
 }) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId, institutionId },
-    include { lines: true, student: true },
+    include: { lines: true, student: true },
   })
 
   if (!invoice) {
@@ -254,7 +262,7 @@ export async function recordPayment({
       status: "SUCCESS",
       processedBy: processedById,
     },
-    include {
+    include: {
       student: true,
       invoice: true,
     },
@@ -345,7 +353,7 @@ async function createReceiptAuto({
 }) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId, institutionId },
-    include { invoice: true, student: true },
+    include: { invoice: true, student: true },
   })
 
   if (!payment || !payment.invoice) {
@@ -367,7 +375,7 @@ async function createReceiptAuto({
       issueDate: new Date(),
       status: "ISSUED",
     },
-    include {
+    include: {
       payment: true,
       student: {
         include: { grade: true },
@@ -415,7 +423,7 @@ export async function generateDefaultersList({
         ne: InvoiceStatus.WRITTEN_OFF,
       },
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -462,3 +470,5 @@ export type {
   InvoiceStatus,
   PaymentMethod
 }
+
+

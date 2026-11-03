@@ -1,10 +1,10 @@
 /* Receipts Service - SaintsHub School Finance
 Handles: Receipt generation, QR codes, receipt history, acknowledgment tracking
 */
-import { prisma } from "../../db"
+import { prisma } from "../../../db"
 import { AuditAction, AuditEvent } from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification } from "../notification.service"
+import { createNotification } from "../../../auth/auth"
 
 // ============================================================================
 // RECEIPT GENERATION
@@ -22,7 +22,7 @@ export async function getReceipt({
 }) {
   const receipt = await prisma.receipt.findUnique({
     where: { id: receiptId, institutionId },
-    include {
+    include: {
       payment: true,
       student: {
         include: { grade: true, user: true },
@@ -55,7 +55,7 @@ export async function getReceiptHistory({
   const [receipts, total] = await prisma.$transaction([
     prisma.receipt.findMany({
       where: { studentId, institutionId },
-      include {
+      include: {
         payment: true,
       },
       skip,
@@ -89,7 +89,7 @@ export async function getInstitutionReceiptHistory({
   const [receipts, total] = await prisma.$transaction([
     prisma.receipt.findMany({
       where: { institutionId },
-      include {
+      include: {
         payment: true,
         student: {
           include: { grade: true },
@@ -156,3 +156,5 @@ export async function acknowledgeReceipt({
 // ============================================================================
 
 // Export receipt-related types
+
+

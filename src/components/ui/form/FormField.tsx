@@ -4,12 +4,12 @@
  */
 
 import { cn } from "@/lib/config"
-import { Input } from "./input/Input"
+import { Input } from "../input/Input"
 
 interface FormFieldProps {
   label: string
   name: string
-  type?: string
+  type?: "text" | "email" | "password" | "number" | "search" | "date" | "tel"
   placeholder?: string
   error?: string | null
   variant?: "default" | "small"

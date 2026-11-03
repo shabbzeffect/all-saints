@@ -84,6 +84,7 @@ interface ReturnFilters {
   searchTerm?: string
 }
 
+export function LibraryDashboard() {
   // Fetch all data
   const fetchData = useCallback(async () => {
     // Fetch books

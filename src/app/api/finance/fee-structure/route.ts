@@ -9,13 +9,13 @@ import { processMpesaCallback, processBankTransaction, processRefund } from "@/s
 import { getReceipt, getReceiptHistory, getInstitutionReceiptHistory, acknowledgeReceipt } from "@/server/services/finance/receipts/receipts.service"
 import { createBudget, getBudgets, addBudgetLine, getBudgetSummary } from "@/server/services/finance/budgets/budgets.service"
 import { generateIncomeExpenditureStatement, generateDefaultersList, generateFeeSummaryByGrade } from "@/server/services/finance/reports/reports.service"
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
 
 // ============================================================================
 // FEE STRUCTURE API
 // ============================================================================
 
-export async function GETfee-structure(request: Request, { params }: { params: { institution: string } }) {
+export async function GETfeeStructure(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
@@ -45,7 +45,7 @@ export async function GETfee-structure(request: Request, { params }: { params: {
   }
 }
 
-export async function POSTfee-structure(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTfeeStructure(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -80,7 +80,7 @@ export async function POSTfee-structure(request: Request, { params }: { params: 
   }
 }
 
-export async function PUTfee-structure(request: Request, { params }: { params: { institution: string; id: string } }) {
+export async function PUTfeeStructure(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -217,7 +217,7 @@ export async function GETpayments(request: Request, { params }: { params: { inst
     // In production, filter by student/status
     const payments = await prisma.payment.findMany({
       where: { institutionId },
-      include {
+      include: {
         invoice: true,
         student: true,
       },

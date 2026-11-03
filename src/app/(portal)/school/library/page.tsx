@@ -1,11 +1,11 @@
 /* School Library - SaintsHub School Portal
 Provides: Book catalog, member management, loan tracking
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -56,27 +56,29 @@ interface Loan {
 }
 
 export function SchoolLibrary() {
-  const [searchParams] = useSearchParams()
   const [books, setBooks] = useState<Book[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
   const router = useRouter()
 
+  const searchParams = useSearchParams() as URLSearchParams
+
   // Initialize from URL filters
   useEffect(() => {
-    const status = searchParams.get("status") || ""
-    const category = searchParams.get("category") || ""
+    const status = (searchParams.get("status") || "") as string
+    const category = (searchParams.get("category") || "") as string
     setFilters({ status, category, searchTerm: searchParams.get("search") || "" })
   }, [searchParams])
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{ status: string; category: string; type?: string; searchTerm: string }>({
     status: "",
     category: "",
     searchTerm: "",
   })
 
   const fetchBooks = useCallback(async () => {
-    const response = await fetch("/api/library/books${searchParams.toString() ? `?${searchParams.toString()` : ""}`, {
+    const qs = searchParams.toString()
+    const response = await fetch(`/api/library/books${qs ? "?" + qs : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -90,7 +92,8 @@ export function SchoolLibrary() {
   }, [])
 
   const fetchLoans = useCallback(async () => {
-    const response = await fetch("/api/library/loans${searchParams.toString() ? `?${searchParams.toString()` : ""}", {
+    const qs = searchParams.toString()
+    const response = await fetch(`/api/library/loans${qs ? "?" + qs : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -128,9 +131,9 @@ export function SchoolLibrary() {
     const matchesSearch =
       filters.searchTerm === ""
         ? true
-        : book.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        book.author.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        book.isbn.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        : book.title.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          book.author.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          book.isbn.toLowerCase().includes((filters.searchTerm || "").toLowerCase())
 
     return matchesCategory && matchesSearch
   })
@@ -279,7 +282,7 @@ export function SchoolLibrary() {
                     <TableCell>{book.title}</TableCell>
                     <TableCell className="text-center">{book.author}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={book.category === "FICTION" ? "default" : book.category === "NON_FICTION" ? "secondary" : book.category === "REFERENCE" ? "destructive" : book.category === "BIOGRAPHY" ? "primary" : "info"} size="sm">
+                      <Badge variant={book.category === "FICTION" ? "default" : book.category === "NON_FICTION" ? "secondary" : book.category === "REFERENCE" ? "destructive" : book.category === "BIOGRAPHY" ? "primary" : "primary"} size="sm">
                         {book.category}
                       </Badge>
                     </TableCell>
@@ -302,7 +305,7 @@ export function SchoolLibrary() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View book details"
+                        aria-label="View book details"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -379,7 +382,7 @@ export function SchoolLibrary() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View member details"
+                        aria-label="View member details"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -462,3 +465,5 @@ export function SchoolLibrary() {
     </div>
   )
 }
+
+export default SchoolLibrary

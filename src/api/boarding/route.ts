@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 /* Boarding Module API Routes - SaintsHub */
 import { NextResponse } from "next/server"
-import { prisma } from "@/src/server/db"
+import { prisma } from "@/server/db"
 
 export async function GET(request: Request) {
   try {
@@ -145,9 +145,10 @@ export async function GET(request: Request) {
       }
 
       case "submit-exeat-request": {
-        const { studentId, requestedBy, reason, startDate, endDate } = await request.json()
+        const body = await request.json() as { studentId: string; requestedBy: string; reason: string; startDate: string; endDate: string }
+        const { studentId, requestedBy, reason, startDate, endDate } = body
 
-        const request = await prisma.exeatPass.create({
+        const exeatRequest = await prisma.exeatPass.create({
           data: {
             studentId,
             requestedBy,
@@ -158,7 +159,7 @@ export async function GET(request: Request) {
           },
         })
 
-        return NextResponse.json(request)
+        return NextResponse.json(exeatRequest)
       }
 
       case "approve-exeat": {

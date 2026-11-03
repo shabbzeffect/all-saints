@@ -167,7 +167,7 @@ export function SchoolFinance() {
                       KSh {fs.amount.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-sm {fs.frequency === "ONCE" ? "text-muted" : "text-anglican-blue"}">
+                      <span className="text-sm {fs.frequency === 'ONCE' ? 'text-muted' : 'text-anglican-blue'}">
                         {fs.frequency}
                       </span>
                     </TableCell>

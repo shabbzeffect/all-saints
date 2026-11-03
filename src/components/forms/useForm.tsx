@@ -139,7 +139,7 @@ export function validateField(
     return `Maximum ${rules.maxLength} characters allowed`
   }
   if (value && rules.pattern && !rules.pattern.test(value)) {
-    return rules.pattern.message || "Invalid format"
+    return rules.pattern ? "Invalid format" : null
   }
   return null
 }

@@ -1,11 +1,11 @@
 /* School Finance - SaintsHub School Portal
 Provides: Fee structure, payment tracking, financial reports
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -39,14 +39,14 @@ interface FeePayment {
 interface FinanceFilter {
   grade?: string
   mandatory?: boolean
-  status?: "PENDING" | "COMPLETED" | "FAILED"
+  status?: "PENDING" | "COMPLETED" | "FAILED" | ""
   searchTerm?: string
 }
 
 export function SchoolFinancePortal() {
   const [filters, setFilters] = useState<FinanceFilter>({
     grade: "",
-    mandatory: "",
+    mandatory: undefined,
     status: "",
     searchTerm: "",
   })
@@ -57,7 +57,7 @@ export function SchoolFinancePortal() {
   useEffect(() => {
     const grade = searchParams.get("grade") || ""
     const mandatory = searchParams.get("mandatory")
-    const status = searchParams.get("status") || ""
+    const status = (searchParams.get("status") || "") as "PENDING" | "COMPLETED" | "FAILED" | ""
     const searchTerm = searchParams.get("search") || ""
     setFilters({ grade, mandatory: mandatory === "true", status, searchTerm })
   }, [searchParams])
@@ -98,9 +98,9 @@ export function SchoolFinancePortal() {
     const matchesSearch =
       filters.searchTerm === ""
         ? true
-        : payment.studentName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          payment.admissionNumber.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          payment.receiptNumber.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        : payment.studentName.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          payment.admissionNumber.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          payment.receiptNumber.toLowerCase().includes((filters.searchTerm || "").toLowerCase())
 
     return matchesGrade && matchesStatus && matchesSearch
   })
@@ -148,7 +148,7 @@ export function SchoolFinancePortal() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Fee</TableClassName>
+                  <TableCell>Fee</TableCell>
                   <TableCell className="text-right">Amount</TableCell>
                   <TableCell className="text-center">Frequency</TableCell>
                   <TableCell className="text-center">Mandatory</TableCell>
@@ -167,7 +167,7 @@ export function SchoolFinancePortal() {
                       KSh {fs.amount.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-sm {fs.frequency === "ONCE" ? "text-muted" : "text-anglican-blue"}">
+                      <span className="text-sm {fs.frequency === 'ONCE' ? 'text-muted' : 'text-anglican-blue'}">
                         {fs.frequency}
                       </span>
                     </TableCell>
@@ -191,7 +191,7 @@ export function SchoolFinancePortal() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View fee details"
+                        aria-label="View fee details"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -225,7 +225,7 @@ export function SchoolFinancePortal() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Student</TableClassName>
+                  <TableCell>Student</TableCell>
                   <TableCell className="text-right">Amount</TableCell>
                   <TableCell className="text-center">Method</TableCell>
                   <TableCell className="text-center">Receipt</TableCell>
@@ -271,7 +271,7 @@ export function SchoolFinancePortal() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View payment details"
+                        aria-label="View payment details"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -362,3 +362,5 @@ export function SchoolFinancePortal() {
     </div>
   )
 }
+
+export default SchoolFinancePortal

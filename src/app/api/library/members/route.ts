@@ -1,4 +1,5 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Member {
   id: string
@@ -29,90 +30,32 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") as "ACTIVE" | "EXPIRED" | "SUSPENDED" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock member data
-    const mockMembers: Member[] = [
-      {
-        id: "member-001",
-        name: "John Omondi",
-        admissionNumber: "ADM-2024-001",
-        grade: "Grade 7",
-        type: "STUDENT",
-        email: "john.omondi@saints.ac.ke",
-        phone: "+254712345678",
-        address: "Nairobi, Kenya",
-        dateJoined: new Date(Date.now() - 365 * 86400000).toISOString().split("T")[0],
-        membershipStatus: "ACTIVE",
-        booksBorrowed: 2,
-        maxBooks: 5,
-        finesOutstanding: 0,
-      },
-      {
-        id: "member-002",
-        name: "Jane Doe",
-        admissionNumber: "ADM-2024-002",
-        grade: "Grade 8",
-        type: "STUDENT",
-        email: "jane.doe@saints.ac.ke",
-        phone: "+254712345679",
-        address: "Nairobi, Kenya",
-        dateJoined: new Date(Date.now() - 300 * 86400000).toISOString().split("T")[0],
-        membershipStatus: "ACTIVE",
-        booksBorrowed: 1,
-        maxBooks: 5,
-        finesOutstanding: 0,
-      },
-      {
-        id: "member-003",
-        name: "Mr. Joseph Omondi",
-        admissionNumber: "TEACH-001",
-        grade: "Staff",
-        type: "TEACHER",
-        email: "joseph.omondi@saints.ac.ke",
-        phone: "+254712345670",
-        address: "Nairobi, Kenya",
-        dateJoined: new Date(Date.now() - 730 * 86400000).toISOString().split("T")[0],
-        membershipStatus: "ACTIVE",
-        booksBorrowed: 0,
-        maxBooks: 3,
-        finesOutstanding: 0,
-      },
-      {
-        id: "member-004",
-        name: "Parent Association",
-        admissionNumber: "PARENT-001",
-        grade: "Parent",
-        type: "PARENT",
-        email: "parent@saints.ac.ke",
-        phone: "+254712345677",
-        address: "Nairobi, Kenya",
-        dateJoined: new Date(Date.now() - 180 * 86400000).toISOString().split("T")[0],
-        membershipStatus: "ACTIVE",
-        booksBorrowed: 0,
-        maxBooks: 2,
-        finesOutstanding: 0,
-      },
-    ]
-
-    let filteredMembers = mockMembers
+    const where: any = {
+      institutionId: undefined, // Will be set by middleware/auth
+    }
 
     if (type) {
-      filteredMembers = filteredMembers.filter((m) => m.type === type)
+      where.type = type
     }
     if (status) {
-      filteredMembers = filteredMembers.filter((m) => m.membershipStatus === status)
+      where.membershipStatus = status
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredMembers = filteredMembers.filter(
-        (m) => m.name.toLowerCase().includes(termLower) ||
-        m.admissionNumber.toLowerCase().includes(termLower) ||
-        m.email.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { admissionNumber: { contains: searchTerm, mode: "insensitive" } },
+        { email: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const members = await prisma.member.findMany({
+      where,
+      orderBy: { name: "asc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredMembers,
+      data: members,
     })
   } catch (error) {
     console.error("Library members error:", error)
@@ -127,15 +70,23 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new member record
-    const newMember: Member = {
-      id: `member-${Date.now().toString(36)}`,
-      ...body,
-      membershipStatus: "ACTIVE",
-      booksBorrowed: 0,
-      maxBooks: body.maxBooks ?? 5,
-      finesOutstanding: 0,
-    }
+    const newMember = await prisma.member.create({
+      data: {
+        name: body.name,
+        admissionNumber: body.admissionNumber,
+        grade: body.grade,
+        type: body.type,
+        email: body.email,
+        phone: body.phone,
+        address: body.address,
+        dateJoined: body.dateJoined ? new Date(body.dateJoined) : new Date(),
+        membershipStatus: "ACTIVE",
+        booksBorrowed: 0,
+        maxBooks: body.maxBooks ?? 5,
+        finesOutstanding: 0,
+        institutionId: "INSTITUTION_ID_PLACEHOLDER", // Will be set by middleware
+      },
+    })
 
     return NextResponse.json({
       success: true,

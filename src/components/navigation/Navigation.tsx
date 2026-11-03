@@ -3,6 +3,7 @@
  * Provides: sidebar navigation for different user roles
  */
 
+import React from "react"
 import { cn } from "@/lib/config"
 import { Menu } from "lucide-react"
 
@@ -45,12 +46,12 @@ export const Navigation = ({
             aria-disabled={isDisabled}
             aria-current={isActive ? "page" : undefined}
           >
-            <item.icon
-              className={cn(
+            {item.icon && React.createElement(item.icon, {
+              className: cn(
                 "shrink-0 w-5 h-5",
                 isActive ? "text-anglican-blue dark:text-anglican-blue-100" : "text-muted/60 dark:text-muted-foreground/60"
-              )}
-            />{item.title}
+              )
+            })}{item.title}
           </button>
         )
       })}

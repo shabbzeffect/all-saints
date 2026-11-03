@@ -610,7 +610,7 @@ export async function POSTassessments(request: Request, { params }: { params: { 
 // REPORT CARDS API
 // ============================================================================
 
-export async function GETreport-cards(request: Request, { params }: { params: { institution: string } }) {
+export async function GETreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
@@ -655,7 +655,7 @@ export async function GETreport-cards(request: Request, { params }: { params: { 
   }
 }
 
-export async function POSTreport-cards(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution

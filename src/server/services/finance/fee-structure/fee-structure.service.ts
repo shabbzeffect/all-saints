@@ -1,11 +1,11 @@
 /* Fee Structure Service - SaintsHub School Finance
 Handles: Fee structure creation, grade-level fees, optional items, discounts
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import { AuditAction, AuditEvent, DiscountType, FeeType, InvoiceStatus } from "@prisma/client"
 import { formatCurrency, parseCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent } from "../../../auth/auth"
+import { createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // FEE STRUCTURE CRUD
@@ -369,7 +369,7 @@ export async function generateInvoice({
       notes: data.notes,
       lines,
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -688,7 +688,7 @@ export async function createBudget({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       budgetLines: true,
     },
   })
@@ -726,7 +726,7 @@ export async function getBudgets({
 
   const budgets = await prisma.budget.findMany({
     where,
-    include {
+    include: {
       budgetLines: {
         include: { account: true },
       },
@@ -886,7 +886,7 @@ export async function generateDefaultersList({
         ne: InvoiceStatus.WRITTEN_OFF,
       },
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -943,3 +943,5 @@ export type {
   PaymentMethod,
   FeeType
 }
+
+

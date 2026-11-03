@@ -125,10 +125,10 @@ export function ParentDashboard({ children, onNavigate }: ParentDashboardProps) 
               </div>
               <div className="flex-1">
                 <p className="text-anglican-blue font-medium text-sm">{metric.title}</p>
-                <p className="text-2xl font-bold {metric.variant === "success" ? "text-success" : metric.variant === "destructive" ? "text-destructive" : "text-anglican-blue"}">
+                <p className="text-2xl font-bold {metric.variant === 'success' ? 'text-success' : metric.variant === 'destructive' ? 'text-destructive' : 'text-anglican-blue'}">
                   {metric.value}
                 </p>
-                <p className="text-sm text-muted/60 {metric.variant === "success" ? "text-success" : metric.variant === "destructive" ? "text-destructive" : "text-muted/60"}">
+                <p className="text-sm text-muted/60 {metric.variant === 'success' ? 'text-success' : metric.variant === 'destructive' ? 'text-destructive' : 'text-muted/60'}">
                   {metric.subtitle}
                 </p>
               </div>

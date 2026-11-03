@@ -1,12 +1,16 @@
 /* Promotion Service - SaintsHub School SIS
 Handles: End-of-year student promotions, class transfers
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  GradeLevel,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
-import { GradeLevel } from "@prisma/client"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // PROMOTION MANAGEMENT

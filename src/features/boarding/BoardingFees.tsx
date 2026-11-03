@@ -80,7 +80,7 @@ export function BoardingFees() {
 
   // Fetch billing data
   const fetchBilling = useCallback(async () => {
-    const response = await fetch(`/api/boarding/fees/billing${searchParams.toString() ? `&${searchParams.toString()` : ""}`, {
+    const response = await fetch(`/api/boarding/fees/billing${searchParams.toString() ? `?${searchParams.toString()}` : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -298,7 +298,7 @@ export function BoardingFees() {
                             <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.5-5.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
                           </svg>
                         )}
-                      </Badge>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {billing.status !== "PAID" && (

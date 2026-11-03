@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/spinner"
 import { useState, useEffect } from "react"
@@ -93,7 +93,7 @@ export function Receipts({ receipts, onAcknowledge }: ReceiptsProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableClassName>Receipt No.</TableClassName>
+                <TableCell>Receipt No.</TableCell>
                 <TableCell>Student</TableCell>
                 <TableCell className="text-right">Amount</TableCell>
                 <TableCell className="text-center">Method</TableCell>
@@ -224,3 +224,5 @@ export function Receipts({ receipts, onAcknowledge }: ReceiptsProps) {
     </div>
   )
 }
+
+export default Receipts

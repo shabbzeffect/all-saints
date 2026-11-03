@@ -1,11 +1,12 @@
 /* Parent Boarding - SaintsHub Parent Portal
 Provides: View child's boarding status, fees, exeat pass requests
+"use client"
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -29,7 +30,7 @@ interface ParentBoardingStudent {
 }
 
 interface ParentBoardingFilter {
-  status?: "ACTIVE" | "EXPIRED" | "TERMINATED"
+  status?: "ACTIVE" | "EXPIRED" | "TERMINATED" | ""
   searchTerm?: string
 }
 
@@ -44,7 +45,7 @@ export function ParentBoarding() {
 
   // Initialize from URL
   useEffect(() => {
-    const status = searchParams.get("status") || ""
+    const status = (searchParams.get("status") || "") as "ACTIVE" | "EXPIRED" | "TERMINATED" | ""
     setFilters({ status, searchTerm: searchParams.get("search") || "" })
   }, [searchParams])
 
@@ -179,7 +180,7 @@ export function ParentBoarding() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Pass</TableClassName>
+                  <TableCell>Pass</TableCell>
                   <TableCell className="text-center">Dates</TableCell>
                   <TableCell className="text-center">Reason</TableCell>
                   <TableCell className="text-center">Status</TableCell>
@@ -222,22 +223,19 @@ export function ParentBoarding() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Button
               variant="primary"
-              onClick={() => router.push(`/parent/boarding/request-exeat`}
-            )
+              onClick={() => router.push(`/parent/boarding/request-exeat`)}
             >
               Request New Exeat Pass
             </Button>
             <Button
               variant="default"
-              onClick={() => router.push(`/parent/boarding/fees`}
-            )
+              onClick={() => router.push(`/parent/boarding/fees`)}
             >
               View Billing
             </Button>
             <Button
               variant="link"
-              onClick={() => router.push(`/parent/boarding/passes`}
-            )
+              onClick={() => router.push(`/parent/boarding/passes`)}
             >
               View Pass History
             </Button>
@@ -247,3 +245,5 @@ export function ParentBoarding() {
     </div>
   )
 }
+
+export default ParentBoarding

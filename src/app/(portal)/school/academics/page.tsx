@@ -1,11 +1,11 @@
 /* School Academics - SaintsHub School Portal
 Provides: Assessment management, report cards, academic records
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -25,8 +25,8 @@ interface Assessment {
 
 interface AssessmentFilter {
   grade?: string
-  type?: "FORMATIVE" | "SUMMATIVE" | "SBA"
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED"
+  type?: "FORMATIVE" | "SUMMATIVE" | "SBA" | ""
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | ""
   searchTerm?: string
 }
 
@@ -42,8 +42,8 @@ export function SchoolAcademics() {
 
   useEffect(() => {
     const grade = searchParams.get("grade") || ""
-    const type = searchParams.get("type") || ""
-    const status = searchParams.get("status") || ""
+    const type = (searchParams.get("type") || "") as "FORMATIVE" | "SUMMATIVE" | "SBA" | ""
+    const status = (searchParams.get("status") || "") as "DRAFT" | "ACTIVE" | "ARCHIVED" | ""
     setFilters({ grade, type, status, searchTerm: searchParams.get("search") || "" })
   }, [searchParams])
 
@@ -66,8 +66,8 @@ export function SchoolAcademics() {
     const matchesSearch =
       filters.searchTerm === ""
         ? true
-        : assessment.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          assessment.subject.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        : assessment.title.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          assessment.subject.toLowerCase().includes((filters.searchTerm || "").toLowerCase())
 
     return matchesGrade && matchesType && matchesStatus && matchesSearch
   })
@@ -199,7 +199,7 @@ export function SchoolAcademics() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Assessment</TableClassName>
+                  <TableCell>Assessment</TableCell>
                   <TableCell className="text-right">Max Score</TableCell>
                   <TableCell className="text-center">Type</TableCell>
                   <TableCell className="text-center">Grade</TableCell>
@@ -268,7 +268,7 @@ export function SchoolAcademics() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View assessment"
+                        aria-label="View assessment"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -380,3 +380,5 @@ export function SchoolAcademics() {
     </div>
   )
 }
+
+export default SchoolAcademics

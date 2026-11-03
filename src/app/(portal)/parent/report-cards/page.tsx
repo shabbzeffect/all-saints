@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/spinner"
 import { useState, useEffect } from "react"
@@ -84,7 +84,7 @@ export function ReportCards({ reportCards, onAcknowledge }: ReportCardsProps) {
                     <div className="text-xs text-muted/60">Adm: {report.admissionNumber}</div>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {report.overallGrade} ({report.overholdScore || report.overallScore})
+                    {report.overallGrade} ({report.overallScore})
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge
@@ -162,3 +162,5 @@ export function ReportCards({ reportCards, onAcknowledge }: ReportCardsProps) {
     </div>
   )
 }
+
+export default ReportCards

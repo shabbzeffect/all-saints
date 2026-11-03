@@ -38,7 +38,7 @@ import {
   registerKJSEA,
   getRegistrationStatus,
 } from "@/server/services/academics/kpsea-kjsea/kpsea-kjsea.service"
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
 
 // ============================================================================
 // ASSESSMENTS API
@@ -77,7 +77,7 @@ export async function GETassessments(request: Request, { params }: { params: { i
     // Default: list assessments for institution
     const assessments = await prisma.assessment.findMany({
       where: { institutionId },
-      include {
+      include: {
         subject: {
           select: { id: true, name: true, code: true },
         },
@@ -135,7 +135,7 @@ export async function POSTassessments(request: Request, { params }: { params: { 
 // ASSESSMENT SCORES API
 // ============================================================================
 
-export async function POSTassessment-scores(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTassessmentScores(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -177,7 +177,7 @@ export async function POSTassessment-scores(request: Request, { params }: { para
 // STUDENT ASSESSMENTS API
 // ============================================================================
 
-export async function GETstudent-assessments(request: Request, { params }: { params: { institution: string } }) {
+export async function GETstudentAssessments(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
@@ -219,7 +219,7 @@ export async function GETstudent-assessments(request: Request, { params }: { par
 // REPORT CARDS API
 // ============================================================================
 
-export async function GETreport-cards(request: Request, { params }: { params: { institution: string } }) {
+export async function GETreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
@@ -257,7 +257,7 @@ export async function GETreport-cards(request: Request, { params }: { params: { 
   }
 }
 
-export async function POSTreport-cards(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -368,7 +368,7 @@ export async function POSTtimetables(request: Request, { params }: { params: { i
 // TIMETABLE LINES API
 // ============================================================================
 
-export async function POSTtimetable-lines(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTtimetableLines(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -407,13 +407,13 @@ export async function POSTtimetable-lines(request: Request, { params }: { params
 // LESSON PLANS API
 // ============================================================================
 
-export async function GETlesson-plans(request: Request, { params }: { params: { institution: string } }) {
+export async function GETlessonPlans(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
     const gradeId = searchParams.get("gradeId")
-    subjectId = searchParams.get("subjectId")
-    termId = searchParams.get("termId")
+    const subjectId = searchParams.get("subjectId")
+    const termId = searchParams.get("termId")
 
     // Check permission
     const permissionCheck = await requirePermission(
@@ -441,7 +441,7 @@ export async function GETlesson-plans(request: Request, { params }: { params: { 
   }
 }
 
-export async function POSTlesson-plans(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTlessonPlans(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -480,7 +480,7 @@ export async function POSTlesson-plans(request: Request, { params }: { params: {
 // DISCIPLINE API
 // ============================================================================
 
-export async function POSTdiscipline-incident(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTdisciplineIncident(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -519,7 +519,7 @@ export async function POSTdiscipline-incident(request: Request, { params }: { pa
 // STUDENT DISCIPLINE HISTORY API
 // ============================================================================
 
-export async function GETdiscipline-history(request: Request, { params }: { params: { institution: string } }) {
+export async function GETdisciplineHistory(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution
@@ -626,7 +626,7 @@ export async function POSTclubs(request: Request, { params }: { params: { instit
 // CLUB MEMBERSHIP API
 // ============================================================================
 
-export async function POSTclub-membership(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTclubMembership(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -665,7 +665,7 @@ export async function POSTclub-membership(request: Request, { params }: { params
 // KPSEA/KJSEA API
 // ============================================================================
 
-export async function POSTkpsea-registration(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTkpseaRegistration(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -704,7 +704,7 @@ export async function POSTkpsea-registration(request: Request, { params }: { par
 // KJSEA REGISTRATION API
 // ============================================================================
 
-export async function POSTkjsea-registration(request: Request, { params }: { params: { institution: string } }) {
+export async function POSTkjseaRegistration(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
     const institutionId = body.institutionId || params.institution
@@ -743,7 +743,7 @@ export async function POSTkjsea-registration(request: Request, { params }: { par
 // REGISTRATION STATUS API
 // ============================================================================
 
-export async function GETregistration-status(request: Request, { params }: { params: { institution: string } }) {
+export async function GETregistrationStatus(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const institutionId = searchParams.get("institutionId") || params.institution

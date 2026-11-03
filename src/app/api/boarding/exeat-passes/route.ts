@@ -1,4 +1,4 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
 
 interface ExeatPass {
   id: string
@@ -43,6 +43,7 @@ export async function GET(request: Request) {
         status: "APPROVED",
         approvedBy: "principal-001",
         approvedAt: new Date(Date.now() - 86400000).toISOString(),
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
         studentName: "John Omondi",
         studentAdmission: "ADM-2024-001",
         grade: "Grade 7",
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
         startDate: new Date(Date.now()).toISOString().split("T")[0],
         endDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
         status: "PENDING",
+        createdAt: new Date().toISOString(),
         studentName: "Jane Doe",
         studentAdmission: "ADM-2024-002",
         grade: "Grade 8",
@@ -67,6 +69,7 @@ export async function GET(request: Request) {
         startDate: new Date(Date.now() + 172800000).toISOString().split("T")[0],
         endDate: new Date(Date.now() + 259200000).toISOString().split("T")[0],
         status: "REJECTED",
+        createdAt: new Date(Date.now() + 172800000).toISOString(),
         studentName: "Peter Omondi",
         studentAdmission: "ADM-2024-003",
         grade: "Grade 9",

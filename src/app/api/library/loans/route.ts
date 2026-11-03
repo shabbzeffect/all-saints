@@ -1,4 +1,5 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Loan {
   id: string
@@ -30,85 +31,34 @@ export async function GET(request: Request) {
     const bookId = searchParams.get("bookId") || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock loan data
-    const mockLoans: Loan[] = [
-      {
-        id: "loan-001",
-        bookId: "book-001",
-        bookTitle: "The Great Gatsby",
-        memberId: "std-001",
-        memberName: "John Omondi",
-        memberType: "STUDENT",
-        borrowedDate: new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 10 * 86400000).toISOString().split("T")[0],
-        status: "ACTIVE",
-        fineAmount: 0,
-        finePaid: false,
-      },
-      {
-        id: "loan-002",
-        bookId: "book-003",
-        bookTitle: "Mathematics Form 3",
-        memberId: "std-002",
-        memberName: "Jane Doe",
-        memberType: "STUDENT",
-        borrowedDate: new Date(Date.now() - 45 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() - 20 * 86400000).toISOString().split("T")[0],
-        status: "OVERDUE",
-        fineAmount: 500,
-        finePaid: false,
-      },
-      {
-        id: "loan-003",
-        bookId: "book-005",
-        bookTitle: "Animal Farm",
-        memberId: "std-003",
-        memberName: "Peter Omondi",
-        memberType: "STUDENT",
-        borrowedDate: new Date(Date.now() - 60 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-        status: "RETURNED",
-        fineAmount: 0,
-        finePaid: true,
-      },
-      {
-        id: "loan-004",
-        bookId: "book-002",
-        bookTitle: "A Brief History of Time",
-        memberId: "std-001",
-        memberName: "John Omondi",
-        memberType: "STUDENT",
-        borrowedDate: new Date(Date.now() - 10 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 25 * 86400000).toISOString().split("T")[0],
-        status: "ACTIVE",
-        fineAmount: 0,
-        finePaid: false,
-      },
-    ]
-
-    let filteredLoans = mockLoans
+    const where: any = {
+      institutionId: undefined, // Will be set by middleware/auth
+    }
 
     if (status) {
-      filteredLoans = filteredLoans.filter((l) => l.status === status)
+      where.status = status
     }
     if (memberId) {
-      filteredLoans = filteredLoans.filter((l) => l.memberId === memberId)
+      where.memberId = memberId
     }
     if (bookId) {
-      filteredLoans = filteredLoans.filter((l) => l.bookId === bookId)
+      where.bookId = bookId
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredLoans = filteredLoans.filter(
-        (l) => l.bookTitle.toLowerCase().includes(termLower) ||
-        l.memberName.toLowerCase().includes(termLower) ||
-        l.id.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { bookTitle: { contains: searchTerm, mode: "insensitive" } },
+        { memberName: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const loans = await prisma.loan.findMany({
+      where,
+      orderBy: { borrowedDate: "desc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredLoans,
+      data: loans,
     })
   } catch (error) {
     console.error("Library loans error:", error)
@@ -123,16 +73,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new loan record
-    const newLoan: Loan = {
-      id: `loan-${Date.now().toString(36)}`,
-      ...body,
-      borrowedDate: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0], // 30 days default
-      status: "ACTIVE",
-      fineAmount: 0,
-      finePaid: false,
-    }
+    const newLoan = await prisma.loan.create({
+      data: {
+        bookId: body.bookId,
+        memberId: body.memberId,
+        borrowedDate: new Date().toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0], // 30 days default
+        status: "ACTIVE",
+        fineAmount: 0,
+        finePaid: false,
+        institutionId: "INSTITUTION_ID_PLACEHOLDER", // Will be set by middleware
+      },
+    })
 
     return NextResponse.json({
       success: true,
@@ -154,7 +106,6 @@ export async function PUT(request: Request) {
     const id = searchParams.get("id") || ""
     const body = await request.json()
 
-    // Update loan return status
     if (!id) {
       return NextResponse.json(
         { success: false, error: "Loan ID required" },
@@ -162,21 +113,19 @@ export async function PUT(request: Request) {
       )
     }
 
-    // In a real app, would update the database
-    const returnedLoan = {
-      ...body,
-      returnDate: new Date().toISOString().split("T")[0],
-      status: body.status === "RETURNED" ? "RETURNED" : body.status,
-    }
-
-    if (body.status === "OVERDUE") {
-      returnedLoan.fineAmount = 500 // Standard overdue fine
-      returnedLoan.finePaid = false
-    }
+    const updatedLoan = await prisma.loan.update({
+      where: { id },
+      data: {
+        status: body.status,
+        returnDate: body.returnDate ? new Date(body.returnDate).toISOString().split("T")[0] : undefined,
+        fineAmount: body.fineAmount,
+        finePaid: body.finePaid,
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      data: returnedLoan,
+      data: updatedLoan,
       message: `Book ${body.status.toLowerCase()} successfully`,
     })
   } catch (error) {

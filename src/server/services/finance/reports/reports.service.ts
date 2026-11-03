@@ -1,7 +1,7 @@
 /* Reports Service - SaintsHub School Finance
 Handles: Financial reports, income/expenditure statements, defaulters lists
 */
-import { prisma } from "../../db"
+import { prisma } from "../../../db"
 import { AuditAction, AuditEvent } from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
 
@@ -30,7 +30,7 @@ export async function generateIncomeExpenditureStatement({
         lte: endDate,
       },
     },
-    include { invoice: true, student: true },
+    include: { invoice: true, student: true },
   })
 
   // Get all bank transactions
@@ -105,7 +105,7 @@ export async function generateDefaultersList({
         ne: InvoiceStatus.WRITTEN_OFF,
       },
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -152,7 +152,7 @@ export async function generateFeeSummaryByGrade({
   // Get all students in the institution
   const students = await prisma.student.findMany({
     where: { institutionId, status: "ACTIVE" },
-    include { grade: true },
+    include: { grade: true },
   })
 
   // Get all invoices for the term
@@ -161,7 +161,7 @@ export async function generateFeeSummaryByGrade({
       institutionId,
       termId,
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -212,3 +212,4 @@ export type {
   DefaultersList,
   FeeSummaryByGrade
 }
+

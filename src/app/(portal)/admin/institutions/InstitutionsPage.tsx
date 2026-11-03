@@ -3,11 +3,13 @@
  * Provides: School/institution list, details, settings
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { useState, useEffect } from "react"
 
 interface Institution {
   id: string
@@ -43,9 +45,9 @@ export function InstitutionsPage() {
       .catch((err) => console.error("Failed to fetch institutions:", err))
   }, [searchTerm])
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    setFilter({ ...filter, searchTerm: e.target.value })
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setFilter({ ...filter, searchTerm: value })
   }
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -107,7 +109,7 @@ export function InstitutionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableClassName>Institution</TableClassName>
+                <TableCell>Institution</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell className="text-right">Code</TableCell>
                 <TableCell className="text-center">Type</TableCell>

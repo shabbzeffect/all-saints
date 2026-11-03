@@ -95,7 +95,7 @@ export function convertCurrency(
  */
 export function calculateTotal(amounts: (number | string)[]): number {
   return amounts.reduce(
-    (total, amount) => total + (typeof amount === "string" ? parseFloat(amount) : amount),
+    (total: number, amount: number | string) => total + (typeof amount === "string" ? parseFloat(amount) : amount),
     0
   )
 }

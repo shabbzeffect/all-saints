@@ -94,7 +94,7 @@ export class PayrollService {
 
     for (const slab of taxSlabs) {
       if (slab.limit && annualGross > slab.limit) {
-        const taxable portion = annualGross - slab.limit
+        const taxablePortion = annualGross - slab.limit
         tds += taxablePortion * slab.rate
         taxableIncome = slab.limit
       }

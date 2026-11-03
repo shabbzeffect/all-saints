@@ -1,12 +1,18 @@
 /* Admissions Service - SaintsHub School SIS
 Handles: Full admissions pipeline, applicant management, status workflow
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  AdmissionStatus,
+  GradeLevel,
+  JobType,
+  NotificationChannel,
+  AdmissionSource,
+} from "@prisma/client"
 import { formatCurrency, normalizePhone } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
-import { AdmissionStatus, GradeLevel } from "@prisma/client"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // ADMISSION PIPELINE MANAGEMENT

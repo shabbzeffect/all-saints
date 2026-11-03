@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { NextResponse } from "next/server"
-import { prisma } from "@/src/server/db"
+import { prisma } from "@/server/db"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
           take: 10,
         })
 
-        const childrenWithBalance = children.map((student) => {
+        const childrenWithBalance = children.map((student: { id: string; admissionNumber: string; fullName: string; feeBalance: number; isBoarding: boolean; _count: { attendances: number }; user: { fullName: string | null } | null; admissions: { admissionNumber: string }[] | null; feePayments: { amount: number; status: string }[] }) => {
           const latestPayment = student.feePayments[0]
           const totalPaid = latestPayment?.amount || 0
           // Calculate balance - simplified: assume full fees are 50000 per term
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 
           return {
             id: student.id,
-            admissionNumber: student.admissions[0]?.admissionNumber || "—",
+            admissionNumber: student.admissions?.[0]?.admissionNumber || "—",
             fullName: student.user?.fullName || "—",
             grade: "—", // Would come from enrolment
             attendancePercentage,
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
           take: 20,
         })
 
-        const formattedInvoices = invoices.map((invoice) => ({
+        const formattedInvoices = invoices.map((invoice: { id: string; invoiceNumber: string; totalAmount: number; amountPaid: number; amountRemaining: number; dueDate: Date; status: string; student: { user: { fullName: string | null } | null; admissions: { admissionNumber: string }[] | null } }) => ({
           id: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
           totalAmount: invoice.totalAmount,
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
           take: 20,
         })
 
-        const formattedReceipts = receipts.map((receipt) => ({
+        const formattedReceipts = receipts.map((receipt: { id: string; receiptNumber: string; amount: number; paymentMethod: string; issueDate: Date; status: string; parentAcknowledged: boolean; qrCodeData: string; payment: { student: { user: { fullName: string | null } | null; admissions: { admissionNumber: string }[] | null } } }) => ({
           id: receipt.id,
           receiptNumber: receipt.receiptNumber,
           amount: receipt.amount,
@@ -214,14 +214,14 @@ export async function POST(request: Request) {
               data: {
                 institutionId: institutionId || "inst-school-1",
                 paymentId: payment.id,
-                receiptNumber: `RCPT-${invoiceId}-${Date().getTime().toString().slice(-6)}`,
+                receiptNumber: `RCPT-${invoiceId}-${new Date().getTime().toString().slice(-6)}`,
                 amount: payment.amount,
                 paymentMethod: paymentType,
                 issueDate: new Date(),
                 status: "ISSUED",
                 qrCodeData: JSON.stringify({
                   type: "receipt",
-                  id: receipt.id,
+                  id: payment.id,
                   institutionId: institutionId || "inst-school-1",
                   invoiceId: invoiceId,
                   amount: payment.amount,
@@ -231,7 +231,7 @@ export async function POST(request: Request) {
                 parentAcknowledged: false,
               },
             })
-            return NextJSON(receipt)
+            return NextResponse.json(receipt)
           }
         }
 

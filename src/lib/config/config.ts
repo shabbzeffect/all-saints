@@ -7,7 +7,7 @@ import { clsx } from "clsx"
  * Merge class names using clsx
  * Similar to tailwind-merge but simpler for our use case
  */
-export function cn(...classes: string[]) {
+export function cn(...classes: (string | boolean | null | undefined)[]) {
   return clsx(classes)
 }
 
@@ -117,13 +117,14 @@ export function truncateText(text: string, maxLength: number): string {
 /**
  * Deep merge two objects
  */
-export function deepMerge<T>(target: T, source: Partial<T>): T {
+export function deepMerge(target: any, source: any): any {
   const result = { ...target }
   for (const key of Object.keys(source)) {
-    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
-      result[key] = deepMerge(result[key], source[key] as T[keyof T])
+    const value = source[key]
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      result[key] = deepMerge(result[key], value)
     } else {
-      result[key] = source[key] as any
+      result[key] = value
     }
   }
   return result
@@ -155,15 +156,19 @@ export function includesCaseInsensitive<T>(arr: T[], value: T): boolean {
 }
 
 /**
- * Generate a random ID for temporary use (e.g., unsaved forms)
+ * Normalize Kenyan phone number to +254 format
  */
-export function generateId(length: number = 12): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  let result = ""
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return result
+export function normalizePhone(phone: string): string {
+  let normalized = phone.trim()
+  normalized = normalized.replace(/^\+?254?/, "")
+  normalized = normalized.replace(/^0/, "")
+  return `+254${normalized}`
 }
 
-export { deepMerge }
+/**
+ * Check if user has a specific permission
+ */
+export function requirePermission(user: any, permission: string): boolean {
+  if (!user?.permissions) return false
+  return user.permissions.includes(permission)
+}

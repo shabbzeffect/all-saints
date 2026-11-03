@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/spinner"
 import { useState, useEffect } from "react"
@@ -162,3 +162,5 @@ export function ParentDashboard({ children, onNavigate }: ParentDashboardProps) 
     </div>
   )
 }
+
+export default ParentDashboard

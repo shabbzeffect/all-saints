@@ -1,11 +1,18 @@
 /* Guardian Service - SaintsHub School SIS
 Handles: Guardian CRUD, student-guardian linkages, relationship management
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  Guardian,
+  StudentGuardian,
+  GuardianRelationship,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
 import { formatCurrency, normalizePhone } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // GUARDIAN CRUD
@@ -90,7 +97,7 @@ export async function getGuardianById({
           },
         },
       },
-    })
+    }})
 
     if (!guardian) {
       throw new Error("Guardian not found or not accessible in this institution")

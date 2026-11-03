@@ -129,7 +129,7 @@ export function LeaveBalance({ staffId, staffName }: LeaveBalanceProps) {
       <Card>
         <CardHeader>
           <CardTitle>Balance Summary</CardTitle>
-        </Header>
+        </CardHeader>
         <CardContent>
           {balance.length === 0 ? (
             <p className="text-muted dark:text-muted-foreground/60">

@@ -1,11 +1,11 @@
 /* Student Detail - SaintsHub School Portal
 Provides: Comprehensive student boarding details, assignment info, billing history
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -67,7 +67,7 @@ interface StudentProfile {
 }
 
 export function StudentDetailPage() {
-  const [searchParams] = useSearchParams()
+  const searchParams = useSearchParams() as URLSearchParams
   const [studentId, setStudentId] = useState(searchParams.get("studentId") || "std-001")
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const router = useRouter()
@@ -306,29 +306,25 @@ export function StudentDetailPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Button
               variant="primary"
-              onClick={() => router.push(`/parent/boarding/student/${studentId}`}
-            )
+              onClick={() => router.push(`/parent/boarding/student/${studentId}`)}
             >
               View Parent Portal
             </Button>
             <Button
               variant="default"
-              onClick={() => router.push(`/school/boarding/student/${studentId}`}
-            )
+              onClick={() => router.push(`/school/boarding/student/${studentId}`)}
             >
               Edit Assignment
             </Button>
             <Button
               variant="link"
-              onClick={() => router.push(`/parent/boarding/fees?studentId=${studentId}`}
-            )
+              onClick={() => router.push(`/parent/boarding/fees?studentId=${studentId}`)}
             >
               Pay Billing
             </Button>
             <Button
               variant="link"
-              onClick={() => router.push(`/parent/boarding/exeat/${studentId}`}
-            )
+              onClick={() => router.push(`/parent/boarding/exeat/${studentId}`)}
             >
               Request Exeat Pass
             </Button>
@@ -338,3 +334,5 @@ export function StudentDetailPage() {
     </div>
   )
 }
+
+export default StudentDetailPage

@@ -3,12 +3,13 @@
  * Provides: System audit logs, filtering, search, export
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { useState, useEffect } from "react"
 
 interface AuditLog {
   id: string
@@ -51,9 +52,9 @@ export function AuditPage() {
     setFilter({ ...filter, action: e.target.value })
   }
 
-  const handleUserChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUserFilter(e.target.value)
-    setFilter({ ...filter, user: e.target.value })
+  const handleUserChange = (value: string) => {
+    setUserFilter(value)
+    setFilter({ ...filter, user: value })
   }
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,7 +129,7 @@ export function AuditPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableClassName>Log</TableClassName>
+                <TableCell>Log</TableCell>
                 <TableCell>User</TableCell>
                 <TableCell>Action</TableCell>
                 <TableCell>Target</TableCell>

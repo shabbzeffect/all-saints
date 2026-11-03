@@ -281,12 +281,11 @@ async function main() {
         canPickUp: true,
         canCollectReports: true,
         canAuthorizeAbsence: true,
-      })
+      },
+    });
     }
-  }
 
   console.log(`✓ Created guardians for ${students.length} students`)
-
   // ==========================================================================
   // 7. ENROLMENTS
   // ==========================================================================

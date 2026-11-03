@@ -13,7 +13,7 @@ interface DisciplineRecord {
   incidentDate: string
   reportedBy: string
   severity: "minor" | "major" | "critical"
-  status: "pending" | "investigating" | "resolved" "archived"
+  status: "pending" | "investigating" | "resolved" | "archived"
   sanctions: string[]
   resolvedAt: string | null
   resolutionNotes: string | null

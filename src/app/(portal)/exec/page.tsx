@@ -1,10 +1,11 @@
 /* Executive Dashboard - SaintsHub
 Provides: role-aware dashboard with separate school and parish KPIs
+"use client"
 */
 import { cn } from "@/lib/config"
-import { Card, Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Revenue, Users, BuildingHouse, Calendar, Heart, GraduationCap, Shield, Mail, Phone } from "lucide-react"
-import { useSearchParams, useSearchParamsProtocol } from "next/navigation"
+import { Card, Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Users, Building2, Calendar, Heart, GraduationCap, Shield, Mail, Phone } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export function ExecDashboard() {
@@ -14,30 +15,27 @@ export function ExecDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch KPIs based on institution
-    // In production, this would be API calls
-    const mockKPIs = institution === "school" ? {
+    const schoolKPIs = {
       title: "School KPIs",
       metrics: [
         { label: "Enrolled Students", value: "427", icon: GraduationCap },
         { label: "Active Teachers", value: "28", icon: Users },
         { label: "Fee Collection Rate", value: "85%", icon: Heart },
-        { label: "Available Seats", value: "156", icon: BuildingHouse },
+        { label: "Available Seats", value: "156", icon: Building2 },
       ],
-    } : {
+    }
+    const parishKPIs = {
       title: "Parish KPIs",
       metrics: [
         { label: "Active Members", value: "312", icon: Users },
         { label: "Weekly Offerings", value: "KSh 450,000", icon: Heart },
-        { label: "Project Progress", value: "67%", icon: BuildingHouse },
+        { label: "Project Progress", value: "67%", icon: Building2 },
         { label: "New Baptisms", value: "12", icon: GraduationCap },
       ],
     }
 
-    const schoolKPIs = institution === "school" ? mockKPIs.school : null
-    const parishKPIs = institution === "parish" ? mockKPIs.parish : null
-
-    setKpis(institution === "school" ? schoolKPIs! : parishKPIs!)
+    const kpiData = institution === "school" ? schoolKPIs.metrics : parishKPIs.metrics
+    setKpis(kpiData)
     setLoading(false)
   }, [institution])
 
@@ -94,3 +92,5 @@ export function ExecDashboard() {
     </div>
   )
 }
+
+export default ExecDashboard

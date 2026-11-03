@@ -1,11 +1,15 @@
 /* Attendance Service - SaintsHub School SIS
 Handles: Daily attendance entry, attendance history, absence alerts
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // DAILY ATTENDANCE ENTRY

@@ -1,11 +1,12 @@
 /* Parent Library - SaintsHub Parent Portal
 Provides: View child's borrowed books, fines, reservations
+"use client"
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -55,13 +56,24 @@ interface ReturnRecord {
   processedAt: string
 }
 
+interface Reservation {
+  id: string
+  bookId: string
+  studentId: string
+  bookTitle: string
+  memberName: string
+  requestedDate: string
+  expiryDate: string
+  status: "ACTIVE" | "FULFILLED" | "CANCELLED"
+}
+
 interface ParentLibraryFilters {
   fineStatus?: "PAID" | "UNPAID" | "WAIVED"
   searchTerm?: string
 }
 
 export function ParentLibrary() {
-  const [searchParams] = useSearchParams()
+  const searchParams = useSearchParams() as URLSearchParams
   const [member, setMember] = useState<Member | null>(null)
   const [loans, setLoans] = useState<Loan[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -89,7 +101,8 @@ export function ParentLibrary() {
   }, [])
 
   const fetchLoans = useCallback(async () => {
-    const response = await fetch("/api/library/loans${searchParams.toString() ? `?${searchParams.toString()` : ""}", {
+    const qs = searchParams.toString()
+    const response = await fetch(`/api/library/loans${qs ? "?" + qs : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -97,7 +110,8 @@ export function ParentLibrary() {
   }, [searchParams])
 
   const fetchReservations = useCallback(async () => {
-    const response = await fetch("/api/library/reservations${searchParams.toString() ? `?${searchParams.toString()` : ""}", {
+    const qs = searchParams.toString()
+    const response = await fetch(`/api/library/reservations${qs ? "?" + qs : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -356,7 +370,7 @@ export function ParentLibrary() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={returnRecord.fineStatus === "PAID" ? "default" : returnRecord.fineStatus === "UNPAID" ? "destructive" : "warning"}
+                        variant={returnRecord.fineStatus === "PAID" ? "default" : returnRecord.fineStatus === "UNPAID" ? "destructive" : "secondary"}
                         size="sm"
                       >
                         {returnRecord.fineStatus}
@@ -401,3 +415,5 @@ export function ParentLibrary() {
     </div>
   )
 }
+
+export default ParentLibrary

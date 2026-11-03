@@ -1,4 +1,4 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
 
 interface Vehicle {
   id: string

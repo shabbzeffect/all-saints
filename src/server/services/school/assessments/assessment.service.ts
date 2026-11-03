@@ -1,11 +1,15 @@
 /* Assessment Service - SaintsHub School SIS
 Handles: Assessment creation, scoring, grade bands, report card generation
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // ASSESSMENT CREATION & SCORING

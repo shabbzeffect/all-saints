@@ -1,8 +1,9 @@
 /* eslint-disable react/prop-types */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui"
+import { LoadingSpinner } from "@/components/ui/spinner"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -234,7 +235,7 @@ export function PayFees({ invoices, onPaymentSuccess }: PayFeesProps) {
               <div>
                 <span className="font-medium">Payment Method</span>
                 <Select
-                  onValueChange={(val) => setPaymentMethod(val as "mpesa" | "bank")}
+                  onValueChange={(e) => setPaymentMethod(e.target.value as "mpesa" | "bank")}
                   defaultValue="mpesa"
                 >
                   <SelectTrigger>
@@ -311,3 +312,5 @@ export function PayFees({ invoices, onPaymentSuccess }: PayFeesProps) {
     </div>
   )
 }
+
+export default PayFees

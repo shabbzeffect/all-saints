@@ -9,9 +9,11 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import bcrypt from "bcryptjs"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "./src/server/db"
-import { sendSMSOTP, verifySMSOTP } from "./src/server/integrations/sms"
-import { generateTOTP, verifyTOTP } from "otplib"
+import { prisma } from "../db"
+import { sendSMSOTP, verifySMSOTP } from "../integrations/sms"
+import * as otplib from "otplib"
+import nodemailer from "nodemailer"
+import { Wing, AuditAction, AuditEvent, UserStatus, NotificationType, JobType, BackgroundJobStatus } from "@prisma/client"
 
 // Config
 export const authOptions = {
@@ -32,7 +34,7 @@ export const authOptions = {
   // Callbacks
   callbacks: {
     // Attach user wing/institution to session
-    async session({ session, token, user }) {
+    async session({ session, token, user }: { session: any; token: any; user: any }) {
       if (token) {
         session.user = {
           ...session.user,
@@ -50,7 +52,7 @@ export const authOptions = {
     },
 
     // Attach data to JWT
-    async jwt({ token, user, account, profile, isNewUser }) {
+    async jwt({ token, user, account, profile, isNewUser }: { token: any; user: any; account: any; profile: any; isNewUser: any }) {
       // Persist wing/institution from onboarding
       if (user) {
         token.wing = user.wing
@@ -70,7 +72,7 @@ export const authOptions = {
     },
 
     // Signin event audit
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile, email, credentials }: { user: any; account: any; profile: any; email: any; credentials: any }) {
       // Audit signin event
       if (user.id) {
         await prisma.auditEvent.create({
@@ -88,7 +90,7 @@ export const authOptions = {
       return true
     },
 
-    async signOut({ user, session }) {
+    async signOut({ user, session }: { user: any; session: any }) {
       // Audit signout
       if (user?.id) {
         await prisma.auditEvent.create({
@@ -124,7 +126,7 @@ export const authOptions = {
         otp: { label: "OTP", type: "text", placeholder: "123456" },
         remember: { label: "Remember", type: "checkbox" },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials: any, req: any) {
         // Step 1: Verify OTP if provided
         if (credentials?.otp) {
           const isValid = await verifySMSOTP(
@@ -140,7 +142,7 @@ export const authOptions = {
         // Step 2: Find user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials?.email },
-          include: { roles: { include: { permissions: true } } },
+          include: { roles: { include: { role: true } } },
         })
 
         if (!user || user.status === UserStatus.ARCHIVED) {
@@ -166,9 +168,7 @@ export const authOptions = {
             where: { id: user.id },
             data: {
               failedLoginAttempts: { increment: 1 },
-              lockedUntil: {
-                gt: new Date() ? new Date() : new Date(Date.now() + 15 * 60 * 1000),
-              },
+              lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
             },
           })
           throw new Error("Invalid email or password.")
@@ -211,7 +211,6 @@ export const authOptions = {
           avatarUrl: user.avatarUrl,
           wing: user.wing,
           institutionId: user.institutionId,
-          role: user.role,
           mfaEnabled: user.mfaEnabled,
           phone: user.phone,
         }
@@ -255,16 +254,16 @@ async function requiresMFAForRole(user: any) {
   return hasRequiredRole
 }
 
-export default NextAuth(authOptions)
+export default NextAuth(authOptions as any)
 
 // Export types for use in route handlers
 export const {
-  handlers: { GET, POST, PUT, DELETE },
+  handlers: { GET, POST },
   auth,
   signIn,
   signOut,
   unstable_update,
-} = NextAuth(authOptions)
+} = NextAuth(authOptions as any)
 
 // Export for middleware use
 export type { User as NextAuthUser } from "next-auth"
@@ -364,7 +363,17 @@ export async function sendPasswordResetEmail(
 ) {
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`
 
-  await nodemailer.sendMail({
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  })
+
+  await transporter.sendMail({
     from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM}>`,
     to: email,
     subject: `Password Reset - ${institutionName}`,
@@ -415,7 +424,7 @@ export async function sendEmail({
     from: fromEmail || `${fromName || "SaintsHub"} <${fromEmail || process.env.SMTP_FROM}>`,
     to,
     subject,
-    text: text || htmlToText(html),
+    text: text || (html ? String(html).replace(/<[^>]*>/g, "") : ""),
     html,
   }
 
@@ -437,50 +446,46 @@ export async function sendEmail({
 // ============================================================================
 
 export async function createNotification({
-  recipientId,
-  senderId,
+  userId,
+  sentById,
   institutionId,
-  channel,
-  subject,
-  body,
+  type,
+  title,
+  message,
   templateId,
   templateData,
-  priority = 0,
 }: {
-  recipientId: string
-  senderId?: string
+  userId: string
+  sentById?: string
   institutionId?: string
-  channel: NotificationChannel
-  subject?: string
-  body: string
+  type: NotificationType
+  title?: string
+  message: string
   templateId?: string
   templateData?: any
-  priority?: number
 }) {
   return await prisma.notification.create({
     data: {
-      recipientId,
-      senderId,
+      userId,
+      sentById,
       institutionId,
-      channel,
-      subject,
-      body,
-      templateId,
-      templateData,
-      priority,
-      status: NotificationStatus.PENDING,
+      type,
+      title: title || "Notification",
+      message,
+      metadata: templateData || {},
+      read: false,
       createdAt: new Date(),
     },
   })
 }
 
-// Mark notification as sent
+// Mark notification as read
 export async function markNotificationSent(notificationId: string) {
   await prisma.notification.update({
     where: { id: notificationId },
     data: {
-      status: NotificationStatus.SENT,
-      sentAt: new Date(),
+      read: true,
+      readAt: new Date(),
     },
   })
 }
@@ -490,8 +495,8 @@ export async function markNotificationDelivered(notificationId: string) {
   await prisma.notification.update({
     where: { id: notificationId },
     data: {
-      status: NotificationStatus.DELIVERED,
-      deliveredAt: new Date(),
+      read: true,
+      readAt: new Date(),
     },
   })
 }
@@ -501,8 +506,8 @@ export async function markNotificationOpened(notificationId: string) {
   await prisma.notification.update({
     where: { id: notificationId },
     data: {
-      status: NotificationStatus.OPENED,
-      openedAt: new Date(),
+      read: true,
+      readAt: new Date(),
     },
   })
 }
@@ -526,12 +531,11 @@ export async function createBackgroundJob({
 }) {
   return await prisma.backgroundJob.create({
     data: {
-      type,
-      status: JobStatus.PENDING,
+      jobType: type,
+      status: BackgroundJobStatus.PENDING,
       priority: priority ?? 0,
       payload: payload || {},
       institutionId,
-      correlationId,
       createdAt: new Date(),
     },
   })
@@ -545,7 +549,7 @@ export async function updateJobStatus({
   error,
 }: {
   jobId: string
-  status: JobStatus
+  status: BackgroundJobStatus
   result?: any
   error?: string
 }) {
@@ -554,14 +558,12 @@ export async function updateJobStatus({
     updatedAt: new Date(),
   }
 
-  if (status === JobStatus.COMPLETED && result) {
-    updateData.result = result
+  if (status === BackgroundJobStatus.COMPLETED && result) {
     updateData.completedAt = new Date()
   }
 
-  if (status === JobStatus.FAILED && error) {
-    updateData.error = error
-    updateData.failedAt = new Date()
+  if (status === BackgroundJobStatus.FAILED && error) {
+    updateData.errorMessage = error
     updateData.attempts = { increment: 1 }
   }
 
@@ -605,7 +607,7 @@ export async function hasActiveInstitution(userId: string): Promise<{
 
   // Find active membership
   const activeMembership = user.memberships.find(
-    (m) => m.status === MembershipStatus.ACTIVE
+    (m) => m.status === "ACTIVE"
   )
 
   if (!activeMembership) return null

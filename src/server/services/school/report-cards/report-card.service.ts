@@ -1,11 +1,16 @@
 /* Report Card Service - SaintsHub School SIS
 Handles: Report card generation, distribution, parent acknowledgment
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import {
+  AuditAction,
+  AuditEvent,
+  ReportCard,
+  JobType,
+  NotificationChannel,
+} from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent, createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // REPORT CARD ISSUANCE & DISTRIBUTION

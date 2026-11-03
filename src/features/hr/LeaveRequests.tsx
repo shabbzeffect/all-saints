@@ -149,14 +149,14 @@ export function LeaveRequests({ staffId, staffName, initialBalance }: LeaveReque
         </h1>
         <p className="text-muted dark:text-muted-foreground/60 mt-1">
           Request time off and view your leave balance
-        </h1>
+        </p>
       </div>
 
       {/* Balance Summary */}
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Leave Balance</CardTitle>
-        </Header>
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -182,7 +182,7 @@ export function LeaveRequests({ staffId, staffName, initialBalance }: LeaveReque
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>New Leave Request</CardTitle>
-        </Header>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -266,7 +266,7 @@ export function LeaveRequests({ staffId, staffName, initialBalance }: LeaveReque
       <Card>
         <CardHeader>
           <CardTitle>Leave Request History</CardTitle>
-        </Header>
+        </CardHeader>
         <CardContent>
           {requests.length === 0 ? (
             <p className="text-muted dark:text-muted-foreground/60">

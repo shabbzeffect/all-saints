@@ -3,12 +3,12 @@
  * Provides: Role list, permission assignment, role creation
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { useState, useEffect } from "react"
 
 interface Permission {
   key: string
@@ -61,8 +61,9 @@ export function RolesPage() {
       .catch((err) => console.error("Failed to fetch roles:", err))
   }, [])
 
-  const handlePermissionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target
+  const handlePermissionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target as HTMLInputElement
+    const { name, checked } = target
     setForm((prev) => ({
       ...prev,
       permissionKeys: checked
@@ -114,7 +115,6 @@ export function RolesPage() {
                     <SelectItem
                       key={perm.key}
                       value={perm.key}
-                      name={perm.key}
                       className="flex items-center gap-2"
                     >
                       <input
@@ -149,7 +149,7 @@ export function RolesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableClassName>Role</TableClassName>
+                    <TableCell>Role</TableCell>
                     <TableCell>Permissions</TableCell>
                     <TableCell className="text-center">System</TableCell>
                     <TableCell></TableCell>

@@ -1,10 +1,10 @@
 /* Budgets Service - SaintsHub School Finance
 Handles: Budget creation, line items, income vs expenditure tracking
 */
-import { prisma } from "../../db"
-import { AuditAction, AuditEvent } from "@prisma/client"
+import { prisma } from "../../../db"
+import { AuditAction, AuditEvent, Budget, BudgetLine } from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification } from "../notification.service"
+import { createNotification } from "../../../auth/auth"
 
 // ============================================================================
 // BUDGET CRUD
@@ -33,7 +33,7 @@ export async function createBudget({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       budgetLines: true,
     },
   })
@@ -71,7 +71,7 @@ export async function getBudgets({
 
   const budgets = await prisma.budget.findMany({
     where,
-    include {
+    include: {
       budgetLines: {
         include: {
           account: {
@@ -148,7 +148,7 @@ export async function getBudgetSummary({
       institutionId,
       fiscalYear,
     },
-    include {
+    include: {
       budgetLines: true,
     },
   })
@@ -213,3 +213,5 @@ export type {
   BudgetLine,
   BudgetSummary
 }
+
+

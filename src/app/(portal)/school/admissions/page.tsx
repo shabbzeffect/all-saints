@@ -1,11 +1,11 @@
 /* School Admissions - SaintsHub School Portal
 Provides: Admission applications, student registration
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -30,7 +30,7 @@ interface AdmissionApplication {
 
 interface AdmissionFilter {
   grade?: string
-  status?: "PENDING" | "UNDER_REVIEW" | "ACCEPTED" | "REJECTED"
+  status?: "PENDING" | "UNDER_REVIEW" | "ACCEPTED" | "REJECTED" | ""
   searchTerm?: string
 }
 
@@ -45,7 +45,7 @@ export function SchoolAdmissions() {
 
   useEffect(() => {
     const grade = searchParams.get("grade") || ""
-    const status = searchParams.get("status") || ""
+    const status = (searchParams.get("status") || "") as "PENDING" | "UNDER_REVIEW" | "ACCEPTED" | "REJECTED" | ""
     setFilters({ grade, status, searchTerm: searchParams.get("search") || "" })
   }, [searchParams])
 
@@ -67,9 +67,9 @@ export function SchoolAdmissions() {
     const matchesSearch =
       filters.searchTerm === ""
         ? true
-        : application.studentName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          application.admissionNumber.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          application.contactEmail.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        : application.studentName.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          application.admissionNumber.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          application.contactEmail.toLowerCase().includes((filters.searchTerm || "").toLowerCase())
 
     return matchesGrade && matchesStatus && matchesSearch
   })
@@ -183,7 +183,7 @@ export function SchoolAdmissions() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Applicant</TableClassName>
+                  <TableCell>Applicant</TableCell>
                   <TableCell className="text-right">Grade</TableCell>
                   <TableCell className="text-center">Status</TableCell>
                   <TableCell className="text-center">Applied</TableCell>
@@ -208,7 +208,7 @@ export function SchoolAdmissions() {
                             : application.status === "UNDER_REVIEW"
                               ? "default"
                               : application.status === "ACCEPTED"
-                                ? "success"
+                                ? "default"
                                 : "destructive"
                         }
                         size="sm"
@@ -224,7 +224,7 @@ export function SchoolAdmissions() {
                         size="icon"
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View application details"
+                        aria-label="View application details"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -355,3 +355,5 @@ export function SchoolAdmissions() {
     </div>
   )
 }
+
+export default SchoolAdmissions

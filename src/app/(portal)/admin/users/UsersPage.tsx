@@ -3,12 +3,13 @@
  * Provides: List of users, search, filter, actions
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { useState, useEffect } from "react"
 
 interface User {
   id: string
@@ -42,9 +43,9 @@ export function UsersPage() {
       .catch((err) => console.error("Failed to fetch users:", err))
   }, [searchTerm])
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    setFilter({ ...filter, searchTerm: e.target.value })
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setFilter({ ...filter, searchTerm: value })
   }
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -106,7 +107,7 @@ export function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableClassName>User</TableClassName>
+                <TableCell>User</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell className="text-right">Email</TableCell>
                 <TableCell className="text-center">Role</TableCell>

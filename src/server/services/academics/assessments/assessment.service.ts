@@ -4,8 +4,8 @@ Handles: Assessment creation, CBC rubric scoring, grade bands, analysis
 import { prisma } from "../../db"
 import { AuditAction, AuditEvent } from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
-import { createNotification, markNotificationSent } from "../notification.service"
-import { createBackgroundJob } from "../jobs/job.service"
+import { createNotification, markNotificationSent } from "../../../auth/auth"
+import { createBackgroundJob } from "../../../auth/auth"
 
 // ============================================================================
 // ASSESSMENT CREATION
@@ -69,7 +69,7 @@ export async function createAssessment({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       subject: true,
       grade: true,
       term: true,
@@ -271,9 +271,9 @@ export async function getStudentAssessmentScores({
 
   const scores = await prisma.assessmentScore.findMany({
     where,
-    include {
+    include: {
       assessment: {
-        include {
+        include: {
           subject: true,
           grade: true,
           term: true,
@@ -314,7 +314,7 @@ export async function getClassPerformanceSummary({
 
   const scores = await prisma.assessmentScore.findMany({
     where,
-    include {
+    include: {
       assessment: true,
       student: true,
     },
@@ -407,25 +407,25 @@ export async function generateReportCard({
   // Get student details
   const student = await prisma.student.findUnique({
     where: { id: studentId, institutionId },
-    include {
+    include: {
       grade: true,
       stream: true,
       user: {
         select: { id: true, name: true, email: true },
       },
-      guardians {
+      guardians: {
         include: { guardian: true },
         where: { isPrimary: true },
       },
-      enrolments {
+      enrolments: {
         include: { term: true, grade: true },
         orderBy: { enrolledAt: "desc" },
         take: 1,
       },
-      assessmentScores {
-        include {
+      assessmentScores: {
+        include: {
           assessment: {
-            include {
+            include: {
               subject: true,
               term: true,
             },
@@ -452,14 +452,14 @@ export async function generateReportCard({
 
   // Get all assessment scores for this student and term
   const allScores = await prisma.assessmentScore.findMany({
-    where {
+    where: {
       studentId,
       institutionId,
       assessment: { termId },
     },
-    include {
+    include: {
       assessment: {
-        include {
+        include: {
           subject: true,
           term: true,
         },
@@ -475,7 +475,7 @@ export async function generateReportCard({
     maxScore: s.assessment?.maxScore || 100,
     percentage: ((s.score / (s.assessment?.maxScore || 100)) * 100).toFixed(1),
     gradeBand: s.gradeBand,
-  })
+  }));
 
   // Calculate overall performance
   const validScores = subjects.filter(
@@ -504,7 +504,7 @@ export async function generateReportCard({
 
   // Get attendance summary
   const attendanceRecords = await prisma.attendance.findMany({
-    where {
+    where: {
       studentId,
       institutionId,
     },
@@ -608,7 +608,7 @@ export async function getReportCardHistory({
 }) {
   const reportCards = await prisma.reportCard.findMany({
     where: { studentId, institutionId },
-    include {
+    include: {
       term: true,
       grade: true,
       academicYear: true,
@@ -657,7 +657,7 @@ export async function createTimetable({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       timetableLines: true,
     },
   })
@@ -705,9 +705,9 @@ export async function getTimetables({
 
   const timetables = await prisma.timetable.findMany({
     where,
-    include {
+    include: {
       timetableLines: {
-        include {
+        include: {
           subject: true,
           teacher: {
             select: { id: true, name: true },
@@ -835,7 +835,7 @@ export async function createLessonPlan({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       subject: true,
       grade: true,
       term: true,
@@ -893,7 +893,7 @@ export async function getLessonPlans({
 
   const lessonPlans = await prisma.lessonPlan.findMany({
     where,
-    include {
+    include: {
       subject: true,
       grade: true,
       term: true,
@@ -941,7 +941,7 @@ export async function logDisciplineIncident({
       institutionId,
       date: new Date(),
     },
-    include {
+    include: {
       student: {
         include: { grade: true },
       },
@@ -971,7 +971,7 @@ export async function logDisciplineIncident({
     // Find primary guardians
     const guardians = await prisma.studentGuardian.findMany({
       where: { studentId: data.studentId, institutionId, isPrimary: true },
-      include { guardian: true, user: true },
+      include: { guardian: true, user: true },
     })
 
     for (const sg of guardians) {
@@ -1005,7 +1005,7 @@ export async function getDisciplineHistory({
 }) {
   const incidents = await prisma.disciplineIncident.findMany({
     where: { studentId, institutionId },
-    include {
+    include: {
       teacher: {
         select: { id: true, name: true },
       },
@@ -1046,7 +1046,7 @@ export async function createClub({
       ...data,
       institutionId,
     },
-    include {
+    include: {
       leader: {
         select: { id: true, name: true },
       },
@@ -1085,12 +1085,12 @@ export async function getClubs({
 }) {
   const clubs = await prisma.club.findMany({
     where: { institutionId, isActive: true },
-    include {
+    include: {
       leader: {
         select: { id: true, name: true },
       },
       clubMembers: {
-        include {
+        include: {
           student: {
             include: { grade: true },
           },
@@ -1194,7 +1194,7 @@ export async function registerKPSEA({
   // Validate student exists and is in Grade 6 or equivalent
   const student = await prisma.student.findUnique({
     where: { id: data.studentId, institutionId },
-    include { grade: true },
+    include: { grade: true },
   })
 
   if (!student) {
@@ -1267,7 +1267,7 @@ export async function registerKJSEA({
   // Validate student exists
   const student = await prisma.student.findUnique({
     where: { id: data.studentId, institutionId },
-    include { grade: true },
+    include: { grade: true },
   })
 
   if (!student) {
@@ -1367,3 +1367,4 @@ export type {
   DisciplineAction,
   ClubType
 }
+

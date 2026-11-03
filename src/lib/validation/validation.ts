@@ -3,8 +3,6 @@
  * Provides: field validation, form validation, password strength, email validation
  */
 
-import { isValid as isValidCPF } from "cpf-cnpj-validator"
-
 /**
  * Validate email format
  */
@@ -32,7 +30,7 @@ export function validatePassword(password: string): {
   requirements: string[]
 } {
   const requirements: string[] = []
-  let strength = "weak"
+  let strength: "weak" | "medium" | "strong" = "weak"
 
   if (password.length >= 8) {
     requirements.push("Minimum 8 characters")
@@ -42,12 +40,12 @@ export function validatePassword(password: string): {
     return { isValid: false, strength, requirements }
   }
 
-  if /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     requirements.push("Mixed case, numbers and special characters")
     strength = "strong"
   }
 
-  const isValid = strength !== "weak"
+  const isValid = (strength as string) !== "weak"
   return { isValid, strength, requirements }
 }
 

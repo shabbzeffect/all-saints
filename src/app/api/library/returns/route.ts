@@ -1,4 +1,5 @@
-import { NextResponse } from "next/http"
+import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface ReturnRecord {
   id: string
@@ -27,72 +28,53 @@ export async function GET(request: Request) {
     const fineStatus = searchParams.get("fineStatus") as "PAID" | "UNPAID" | "WAIVED" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock return records
-    const mockReturns: ReturnRecord[] = [
-      {
-        id: "return-001",
-        loanId: "loan-002",
-        bookId: "book-003",
-        bookTitle: "Mathematics Form 3",
-        memberId: "std-002",
-        memberName: "Jane Doe",
-        borrowedDate: new Date(Date.now() - 45 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() - 20 * 86400000).toISOString().split("T")[0],
-        returnDate: new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0],
-        fineAmount: 500,
-        fineStatus: "UNPAID",
-        processedBy: "librarian-001",
-        processedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-      },
-      {
-        id: "return-002",
-        loanId: "loan-003",
-        bookId: "book-005",
-        bookTitle: "Animal Farm",
-        memberId: "std-003",
-        memberName: "Peter Omondi",
-        borrowedDate: new Date(Date.now() - 60 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-        returnDate: new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0],
-        fineAmount: 0,
-        fineStatus: "PAID",
-        processedBy: "librarian-001",
-        processedAt: new Date(Date.now() - 15 * 86400000).toISOString(),
-      },
-      {
-        id: "return-003",
-        loanId: "loan-001",
-        bookId: "book-001",
-        bookTitle: "The Great Gatsby",
-        memberId: "std-001",
-        memberName: "John Omondi",
-        borrowedDate: new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 10 * 86400000).toISOString().split("T")[0],
-        returnDate: new Date().toISOString().split("T")[0],
-        fineAmount: 0,
-        fineStatus: "PAID",
-        processedBy: "librarian-001",
-        processedAt: new Date().toISOString(),
-      },
-    ]
-
-    let filteredReturns = mockReturns
+    const where: any = {
+      institutionId: undefined, // Will be set by middleware/auth
+    }
 
     if (fineStatus) {
-      filteredReturns = filteredReturns.filter((r) => r.fineStatus === fineStatus)
+      where.status = fineStatus as "ISSUED" | "RETURNED" | "LOST" | "DAMAGED"
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredReturns = filteredReturns.filter(
-        (r) => r.bookTitle.toLowerCase().includes(termLower) ||
-        r.memberName.toLowerCase().includes(termLower) ||
-        r.id.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { book: { title: { contains: searchTerm, mode: "insensitive" } } },
+        { student: { name: { contains: searchTerm, mode: "insensitive" } } },
+      ]
     }
+
+    const borrows = await prisma.borrowRecord.findMany({
+      where,
+      orderBy: { returnedAt: "desc" },
+    })
+
+    // Map BorrowRecord to ReturnRecord format
+    const returns = borrows.map((borrow) => {
+      const fineStatusMap: Record<string, "PAID" | "UNPAID" | "WAIVED"> = {
+        RETURNED: "PAID",
+        ISSUED: "UNPAID",
+        LOST: "UNPAID",
+        DAMAGED: "UNPAID",
+      }
+      return {
+        id: borrow.id,
+        loanId: borrow.id,
+        bookId: borrow.bookId,
+        bookTitle: borrow.book?.title || "Unknown",
+        memberId: borrow.studentId,
+        memberName: borrow.student?.name || "Unknown",
+        borrowedDate: borrow.issuedAt.toISOString().split("T")[0],
+        dueDate: borrow.dueDate.toISOString().split("T")[0],
+        returnDate: borrow.returnedAt?.toISOString().split("T")[0] || "",
+        fineAmount: borrow.fineAmount || 0,
+        fineStatus: fineStatusMap[borrow.status] || "UNPAID",
+        processedBy: "librarian-001",
+        processedAt: borrow.updatedAt?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0],
+      } as ReturnRecord
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredReturns,
+      data: returns,
     })
   } catch (error) {
     console.error("Library returns error:", error)
@@ -107,19 +89,49 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new return record
-    const newReturn: ReturnRecord = {
-      id: `return-${Date.now().toString(36)}`,
-      ...body,
-      returnDate: new Date().toISOString().split("T")[0],
-      fineStatus: "UNPAID",
-      processedBy: "librarian-001",
-      processedAt: new Date().toISOString(),
+    // Find the active borrow record and mark it as returned
+    const borrow = await prisma.borrowRecord.findFirst({
+      where: {
+        bookId: body.bookId,
+        studentId: body.memberId,
+        status: "ACTIVE",
+      },
+    })
+
+    if (!borrow) {
+      return NextResponse.json(
+        { success: false, error: "Active borrow record not found" },
+        { status: 404 }
+      )
     }
+
+    const returnedBorrow = await prisma.borrowRecord.update({
+      where: { id: borrow.id },
+      data: {
+        status: "RETURNED" as const,
+        returnedAt: new Date().toISOString(),
+        fineAmount: body.fineAmount,
+      },
+    })
+
+    // Create a return record
+    const returnRecord = await prisma.borrowRecord.create({
+      data: {
+        bookId: body.bookId,
+        studentId: body.memberId,
+        status: "RETURNED" as const,
+        issuedAt: borrow.issuedAt,
+        dueDate: borrow.dueDate,
+        returnedAt: new Date().toISOString(),
+        fineAmount: body.fineAmount,
+        finePaid: body.fineStatus === "PAID",
+        institutionId: "INSTITUTION_ID_PLACEHOLDER", // Will be set by middleware
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      data: newReturn,
+      data: returnRecord,
       message: "Book return recorded successfully",
     })
   } catch (error) {

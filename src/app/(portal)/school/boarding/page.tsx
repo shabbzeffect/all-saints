@@ -1,11 +1,11 @@
 /* School Boarding - SaintsHub School Portal
 Provides: Boarding student management, dormitory overview, fee tracking
 */
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
+import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
+import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -28,7 +28,7 @@ interface BoardingStudent {
 }
 
 interface BoardingFilter {
-  status?: "ACTIVE" | "EXPIRED" | "TERMINATED"
+  status?: "ACTIVE" | "EXPIRED" | "TERMINATED" | ""
   dormitory?: string
   searchTerm?: string
 }
@@ -46,13 +46,15 @@ export function SchoolBoarding() {
 
   // Initialize filters from URL
   useEffect(() => {
-    const status = searchParams.get("status") || ""
+    const status = (searchParams.get("status") || "") as "ACTIVE" | "EXPIRED" | "TERMINATED" | ""
     const dormitory = searchParams.get("dormitory") || ""
     setFilters({ status, dormitory, searchTerm: searchParams.get("search") || "" })
   }, [searchParams])
 
   const fetchStudents = useCallback(async () => {
-    const response = await fetch(`/api/boarding/assignments/student?studentId=${searchParams.get("studentId") || ""}${searchParams.toString() ? `&${searchParams.toString()` : ""}`, {
+    const studentId = searchParams.get("studentId") || ""
+    const qs = searchParams.toString()
+    const response = await fetch(`/api/boarding/assignments/student?studentId=${studentId}${qs ? "&" + qs : ""}`, {
       cache: "no-store",
     })
     const data = await response.json()
@@ -78,8 +80,8 @@ export function SchoolBoarding() {
     const matchesSearch =
       filters.searchTerm === ""
         ? true
-        : student.studentName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        student.admissionNumber.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        : student.studentName.toLowerCase().includes((filters.searchTerm || "").toLowerCase()) ||
+          student.admissionNumber.toLowerCase().includes((filters.searchTerm || "").toLowerCase())
 
     return matchesStatus && matchesDormitory && matchesSearch
   })
@@ -187,7 +189,7 @@ export function SchoolBoarding() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Student</TableClassName>
+                  <TableCell>Student</TableCell>
                   <TableCell className="text-center">Grade</TableCell>
                   <TableCell className="text-center">Dormitory</TableCell>
                   <TableCell className="text-center">Room</TableCell>
@@ -237,7 +239,7 @@ export function SchoolBoarding() {
                         variant="link"
                         className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
                         onClick={() => handleNavigate(`/student/${student.id}`)}
-                        aria="View student details"
+                        aria-label="View student details"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
@@ -272,3 +274,5 @@ export function SchoolBoarding() {
     </div>
   )
 }
+
+export default SchoolBoarding
