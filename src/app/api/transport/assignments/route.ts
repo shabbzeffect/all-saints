@@ -31,78 +31,33 @@ export async function GET(request: Request) {
     const studentId = searchParams.get("studentId") || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock assignment data
-    const mockAssignments: Assignment[] = [
-      {
-        id: "assign-001",
-        routeId: "route-001",
-        vehicleId: "veh-001",
-        studentId: "std-001",
-        studentName: "John Omondi",
-        admissionNumber: "ADM-2024-001",
-        stopId: "stop-001",
-        stopName: "School Main Gate",
-        pickupTime: "07:30",
-        dropoffTime: "17:00",
-        status: "ACTIVE",
-        pickupDate: new Date().toISOString().split("T")[0],
-        dropoffDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-      },
-      {
-        id: "assign-002",
-        routeId: "route-002",
-        vehicleId: "veh-002",
-        studentId: "std-002",
-        studentName: "Jane Doe",
-        admissionNumber: "ADM-2024-002",
-        stopId: "stop-002",
-        stopName: "Railways Station",
-        pickupTime: "07:45",
-        dropoffTime: "16:30",
-        status: "ACTIVE",
-        pickupDate: new Date().toISOString().split("T")[0],
-        dropoffDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-      },
-      {
-        id: "assign-003",
-        routeId: "route-001",
-        vehicleId: "veh-001",
-        studentId: "std-003",
-        studentName: "Peter Omondi",
-        admissionNumber: "ADM-2024-003",
-        stopId: "stop-003",
-        stopName: "Westlands Roundabout",
-        pickupTime: "07:35",
-        dropoffTime: "16:55",
-        status: "SCHEDULED",
-        pickupDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        dropoffDate: new Date(Date.now() + 172800000).toISOString().split("T")[0],
-      },
-    ]
-
-    let filteredAssignments = mockAssignments
+    const where: any = {}
 
     if (status) {
-      filteredAssignments = filteredAssignments.filter((a) => a.status === status)
+      where.status = status
     }
     if (vehicleId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.vehicleId === vehicleId)
+      where.vehicleId = vehicleId
     }
     if (studentId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.studentId === studentId)
+      where.studentId = studentId
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredAssignments = filteredAssignments.filter(
-        (a) => a.studentName.toLowerCase().includes(termLower) ||
-        a.admissionNumber.toLowerCase().includes(termLower) ||
-        a.stopName.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { studentName: { contains: searchTerm, mode: "insensitive" } },
+        { admissionNumber: { contains: searchTerm, mode: "insensitive" } },
+        { stopName: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const assignments = await prisma.assignment.findMany({
+      where,
+      orderBy: { pickupDate: "desc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredAssignments,
+      data: assignments,
     })
   } catch (error) {
     console.error("Transport assignments error:", error)
@@ -117,17 +72,21 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new assignment record
-    const newAssignment: Assignment = {
-      id: `assign-${Date.now().toString(36)}`,
-      ...body,
-      status: "SCHEDULED",
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: newAssignment,
-      message: "Assignment created successfully",
+    const newAssignment = await prisma.assignment.create({
+      data: {
+        routeId: body.routeId,
+        vehicleId: body.vehicleId,
+        studentId: body.studentId,
+        studentName: body.studentName,
+        admissionNumber: body.admissionNumber,
+        stopId: body.stopId,
+        stopName: body.stopName,
+        pickupTime: body.pickupTime,
+        dropoffTime: body.dropoffTime,
+        status: body.status || "SCHEDULED",
+        pickupDate: body.pickupDate || new Date().toISOString().split("T")[0],
+        dropoffDate: body.dropoffDate || new Date(Date.now() + 86400000).toISOString().split("T")[0],
+      },
     })
   } catch (error) {
     console.error("Create assignment error:", error)

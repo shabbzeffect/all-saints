@@ -1,5 +1,8 @@
+"use client"
+
 // Checkbox.tsx
 // Base checkbox component
+// NOTE: This component uses React hooks and must be a Client Component
 
 import React from "react"
 import { cn } from "@/lib/config"

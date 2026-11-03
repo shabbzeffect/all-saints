@@ -139,11 +139,11 @@ export function TransportDashboard() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-anglican-blue font-medium">Pending Fees</p>
-              <p className="font-bold text-2xl text-destructive">KSh {stats.pendingFees.toLocaleString()}</p>
+              <p className="font-bold text-2xl text-destructive">{formatCurrency(stats.pendingFees)}</p>
             </div>
             <div>
               <p className="text-anglican-blue font-medium">Total Fleet Value</p>
-              <p className="font-bold text-2xl">KSh {totalDailyRate.toLocaleString()}/day</p>
+              <p className="font-bold text-2xl">{formatCurrency(totalDailyRate)}/day</p>
             </div>
           </div>
         </Card>
@@ -319,7 +319,7 @@ export function TransportDashboard() {
                       <div className="font-medium">{fee.studentName}</div>
                       <div className="text-xs text-muted/60">{fee.admissionNumber}</div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">KSh {fee.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(fee.amount)}</TableCell>
                     <TableCell className="text-center">
                       <div className="text-sm">{fee.period}</div>
                     </TableCell>

@@ -15,6 +15,22 @@ import * as otplib from "otplib"
 import nodemailer from "nodemailer"
 import { Wing, AuditAction, AuditEvent, UserStatus, NotificationType, JobType, BackgroundJobStatus } from "@prisma/client"
 
+// Demo mode configuration
+const DEMO_MODE = process.env.DEMO_MODE === "true"
+
+// Demo user data
+const DEMO_USER = {
+  id: "demo-user-1",
+  email: "demo@saintshub.test",
+  name: "Demo User",
+  avatarUrl: "/api/placeholder/40/40",
+  wing: "SCHOOL",
+  institutionId: "institution-1",
+  role: "ADMIN",
+  mfaEnabled: false,
+  phone: "+254700000000",
+}
+
 // Config
 export const authOptions = {
   // Debug: enable in development
@@ -47,6 +63,12 @@ export const authOptions = {
           role: token.role,
           mfaEnabled: token.mfaEnabled,
         }
+      }
+      // Ensure demo user has proper role mapping
+      if (DEMO_MODE && session.user?.email === "demo@saintshub.test") {
+        session.user.role = "ADMIN"
+        session.user.wing = "SCHOOL"
+        session.user.institutionId = "institution-1"
       }
       return session
     },
@@ -127,6 +149,11 @@ export const authOptions = {
         remember: { label: "Remember", type: "checkbox" },
       },
       async authorize(credentials: any, req: any) {
+        // Step 0: Demo mode login
+        if (DEMO_MODE && credentials?.email === "demo@saintshub.test") {
+          return DEMO_USER
+        }
+
         // Step 1: Verify OTP if provided
         if (credentials?.otp) {
           const isValid = await verifySMSOTP(

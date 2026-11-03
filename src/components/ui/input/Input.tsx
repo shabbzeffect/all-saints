@@ -1,7 +1,10 @@
+"use client"
+
 /* Input.tsx
  * Input component for SaintsHub
  * Provides: Text input, email, password, number types
  * Features: Label integration, placeholder styling, error state, accessibility
+ * NOTE: This component uses React hooks and must be a Client Component
  */
 
 import React from "react"

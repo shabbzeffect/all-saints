@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { formatCurrency } from "@/lib/config"
 
 interface BillingRecord {
   id: string
@@ -253,7 +254,7 @@ export function BoardingFees() {
                       <div className="font-medium">{billing.studentName}</div>
                       <div className="text-xs text-muted/60">{billing.studentAdmission}</div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">KSh {billing.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(billing.amount)}</TableCell>
                     <TableCell className="text-center">
                       <div className="text-sm">{billing.period}</div>
                     </TableCell>
@@ -348,7 +349,7 @@ export function BoardingFees() {
             <form onSubmit={processPayment} className="space-y-4">
               <div>
                 <label className="text-anglican-blue font-medium">Outstanding Amount</label>
-                <p className="font-bold text-2xl text-destructive">KSh {selectedBilling.amount.toLocaleString()}</p>
+                <p className="font-bold text-2xl text-destructive">{formatCurrency(selectedBilling.amount)}</p>
               </div>
 
               <div>
@@ -424,13 +425,13 @@ export function BoardingFees() {
           <div>
             <p className="text-anglican-blue font-medium">Total Due</p>
             <p className="font-bold text-2xl text-destructive">
-              KSh {totalDue.toLocaleString()}
+              {formatCurrency(totalDue)}
             </p>
           </div>
           <div>
             <p className="text-anglican-blue font-medium">Total Paid</p>
             <p className="font-bold text-2xl text-success">
-              KSh {totalPaid.toLocaleString()}
+              {formatCurrency(totalPaid)}
             </p>
           </div>
         </div>

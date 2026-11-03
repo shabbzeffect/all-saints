@@ -2,6 +2,7 @@
 Provides: View child's borrowed books, fines, reservations
 "use client"
 */
+import { Skeleton, Alert, AlertWithTitle } from "@/components/ui"
 import { Input } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui"
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { formatCurrency } from "@/lib/config"
 import { useRouter } from "next/navigation"
 
 interface Member {
@@ -79,6 +81,8 @@ export function ParentLibrary() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [returns, setReturns] = useState<ReturnRecord[]>([])
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Initialize from URL
   useEffect(() => {
@@ -125,11 +129,16 @@ export function ParentLibrary() {
   }, [])
 
   useEffect(() => {
+    setIsLoading(true)
     fetchMember("member-001")
     fetchLoans()
     fetchReservations()
     fetchReturns()
   }, [fetchMember, fetchLoans, fetchReservations, fetchReturns])
+
+  useEffect(() => {
+    setIsLoading(false)
+  }, [])
 
   const handleFilterChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -179,7 +188,19 @@ export function ParentLibrary() {
     return matchesSearch
   })
 
-  if (!member) {
+  {if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto p-8">
+          <div className="grid grid-cols-1 gap-6">
+            <SkeletonCard height="1.25rem" width="full" />
+            <SkeletonCard height="1rem" width="3rem" />
+            <SkeletonTableRow cells={3} />
+          </div>
+        </div>
+      </div>
+    )
+  } else if (!member) {
     return (
       <div className="p-6 sm:p-8">
         <div className="text-center text-muted dark:text-muted-foreground py-8">
@@ -187,10 +208,19 @@ export function ParentLibrary() {
         </div>
       </div>
     )
-  }
-
-  return (
-    <div className="p-6 sm:p-8">
+  } else if (error) {
+    return (
+      <div className="p-6 sm:p-8">
+        <AlertWithTitle
+          title="Library Error"
+          description={error}
+          variant="destructive"
+        />
+      </div>
+    )
+  } else {
+    return (
+      <div className="p-6 sm:p-8">
       <header className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
           Library Dashboard
@@ -224,7 +254,7 @@ export function ParentLibrary() {
             <div>
               <p className="text-anglican-blue font-medium">Fines Outstanding</p>
               <p className="font-bold text-destructive">
-                KSh {member?.finesOutstanding.toLocaleString()}
+                {formatCurrency(member?.finesOutstanding)}
               </p>
             </div>
           </div>
@@ -275,7 +305,7 @@ export function ParentLibrary() {
                     <TableCell className="text-center">
                       {loan.fineAmount > 0 ? (
                         <Badge variant="destructive" size="sm">
-                          KSh {loan.fineAmount}
+                          {formatCurrency(loan.fineAmount)}
                         </Badge>
                       ) : (
                         <div className="text-sm text-muted/60">—</div>

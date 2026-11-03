@@ -230,7 +230,7 @@ export function RoomAssignmentManager() {
                       <div>{assignment.leaseStart} - {assignment.leaseEnd}</div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="font-medium">KSh {assignment.rentAmount.toLocaleString()}</div>
+                      <div className="font-medium">{formatCurrency(assignment.rentAmount)}</div>
                     </TableCell>
                     <TableCell>
                       <Button

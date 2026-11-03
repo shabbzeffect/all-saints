@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Vehicle {
   id: string
@@ -25,63 +26,30 @@ export async function GET(request: Request) {
     const vehicleType = searchParams.get("vehicleType") as "BUS" | "VAN" | "CAR" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock vehicle data
-    const mockVehicles: Vehicle[] = [
-      {
-        id: "veh-001",
-        plateNumber: "KBA 123F",
-        vehicleType: "BUS",
-        capacity: 60,
-        manufacturer: "Toyota",
-        model: "Coaster",
-        year: 2018,
-        status: "ACTIVE",
-        dailyRate: 15000,
-      },
-      {
-        id: "veh-002",
-        plateNumber: "KBC 456G",
-        vehicleType: "VAN",
-        capacity: 15,
-        manufacturer: "Isuzu",
-        model: "N-Series",
-        year: 2020,
-        status: "ACTIVE",
-        dailyRate: 8000,
-      },
-      {
-        id: "veh-003",
-        plateNumber: "KBD 789H",
-        vehicleType: "BUS",
-        capacity: 50,
-        manufacturer: "Mitsubishi",
-        model: "Rosa",
-        year: 2019,
-        status: "MAINTENANCE",
-        dailyRate: 12000,
-      },
-    ]
-
-    let filteredVehicles = mockVehicles
+    const where: any = {}
 
     if (status) {
-      filteredVehicles = filteredVehicles.filter((v) => v.status === status)
+      where.status = status
     }
     if (vehicleType) {
-      filteredVehicles = filteredVehicles.filter((v) => v.vehicleType === vehicleType)
+      where.vehicleType = vehicleType
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredVehicles = filteredVehicles.filter(
-        (v) => v.plateNumber.toLowerCase().includes(termLower) ||
-        v.manufacturer.toLowerCase().includes(termLower) ||
-        v.model.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { plateNumber: { contains: searchTerm, mode: "insensitive" } },
+        { manufacturer: { contains: searchTerm, mode: "insensitive" } },
+        { model: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const vehicles = await prisma.vehicle.findMany({
+      where,
+      orderBy: { year: "desc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredVehicles,
+      data: vehicles,
     })
   } catch (error) {
     console.error("Transport vehicles error:", error)
@@ -96,12 +64,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new vehicle record
-    const newVehicle: Vehicle = {
-      id: `veh-${Date.now().toString(36)}`,
-      ...body,
-      status: "ACTIVE",
-    }
+    const newVehicle = await prisma.vehicle.create({
+      data: {
+        plateNumber: body.plateNumber,
+        vehicleType: body.vehicleType,
+        capacity: body.capacity,
+        manufacturer: body.manufacturer,
+        model: body.model,
+        year: body.year,
+        status: body.status || "ACTIVE",
+        dailyRate: body.dailyRate,
+      },
+    })
 
     return NextResponse.json({
       success: true,

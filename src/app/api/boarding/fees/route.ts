@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface BoardingFee {
   id: string
@@ -25,61 +26,29 @@ export async function GET(request: Request) {
     const mandatory = searchParams.get("mandatory") === "true"
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock boarding fee data
-    const mockFees: BoardingFee[] = [
-      {
-        id: "fee-001",
-        name: "Full Boarding - Termly",
-        description: "Full boarding fee per term (3 terms per year)",
-        amount: 75000,
-        isMandatory: true,
-        applicableGrades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"],
-        wing: "SCHOOL",
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "fee-002",
-        name: "Weekly Boarding - Per Week",
-        description: "Weekly boarding fee (paid per week)",
-        amount: 25000,
-        isMandatory: false,
-        applicableGrades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10"],
-        wing: "SCHOOL",
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "fee-003",
-        name: "Parish Boarding - Half Term",
-        description: "Half term boarding for parish members",
-        amount: 35000,
-        isMandatory: false,
-        applicableGrades: [],
-        wing: "PARISH",
-        isActive: true,
-        createdAt: new Date(Date.now() - 1209600000).toISOString(),
-      },
-    ]
-
-    let filteredFees = mockFees
+    const where: any = {}
 
     if (wing) {
-      filteredFees = filteredFees.filter((f) => f.wing === wing)
+      where.wing = wing
     }
     if (mandatory !== undefined) {
-      filteredFees = filteredFees.filter((f) => f.isMandatory === mandatory)
+      where.isMandatory = mandatory
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredFees = filteredFees.filter(
-        (f) => f.name.toLowerCase().includes(termLower) || f.description.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { description: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const fees = await prisma.boardingFee.findMany({
+      where,
+      orderBy: { name: "asc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredFees,
+      data: fees,
     })
   } catch (error) {
     console.error("Boarding fees error:", error)
@@ -94,13 +63,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new boarding fee
-    const newFee: BoardingFee = {
-      id: `fee-${Date.now().toString(36)}`,
-      ...body,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    }
+    const newFee = await prisma.boardingFee.create({
+      data: {
+        name: body.name,
+        description: body.description,
+        amount: body.amount,
+        isMandatory: body.isMandatory,
+        applicableGrades: body.applicableGrades || [],
+        wing: body.wing,
+        isActive: body.isActive ?? true,
+      },
+    })
 
     return NextResponse.json({
       success: true,

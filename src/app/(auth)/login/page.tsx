@@ -1,6 +1,6 @@
+"use client"
 /* Login Page - SaintsHub
 Provides: Email/Password login, SMS OTP, TOTP 2FA setup, Google OAuth
-"use client"
 */
 import { cn } from "@/lib/config"
 import {
@@ -170,6 +170,15 @@ export function LoginPage() {
           >
             Continue with Google
           </button>
+          {DEMO_MODE && (
+            <button
+              onClick={() => router.push("/app/exec")}
+              aria-label="Continue as demo user"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-primary/10 text-primary"
+            >
+              Demo Login
+            </button>
+          )}
         </div>
 
         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">

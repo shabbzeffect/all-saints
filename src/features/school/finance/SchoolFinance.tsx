@@ -164,7 +164,7 @@ export function SchoolFinance() {
                   >
                     <TableCell>{fs.name}</TableCell>
                     <TableCell className="text-right font-medium">
-                      KSh {fs.amount.toLocaleString()}
+                      {formatCurrency(fs.amount)}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-sm {fs.frequency === 'ONCE' ? 'text-muted' : 'text-anglican-blue'}">
@@ -244,7 +244,7 @@ export function SchoolFinance() {
                       <div className="text-xs text-muted/60">{payment.admissionNumber}</div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      KSh {payment.amount.toLocaleString()}
+                      {formatCurrency(payment.amount)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge

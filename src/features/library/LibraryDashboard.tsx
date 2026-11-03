@@ -1,6 +1,7 @@
 /* Library Dashboard - SaintsHub Library Module
 Provides: Book management, member management, loan tracking, return records
 */
+import { Skeleton, Alert, AlertWithTitle } from "@/components/ui"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { formatCurrency } from "@/lib/config"
 
 interface Book {
   id: string
@@ -85,8 +87,44 @@ interface ReturnFilters {
 }
 
 export function LibraryDashboard() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   // Fetch all data
   const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Fetch books
+      const bookResponse = await fetch("/api/library/books", { cache: "no-store" })
+      const bookData = await bookResponse.json()
+      setBooks(bookData.data || [])
+
+      // Fetch members
+      const memberResponse = await fetch("/api/library/members", { cache: "no-store" })
+      const memberData = await memberResponse.json()
+      setMembers(memberData.data || [])
+
+      // Fetch loans
+      const loanResponse = await fetch("/api/library/loans", { cache: "no-store" })
+      const loanData = await loanResponse.json()
+      setLoans(loanData.data || [])
+
+      // Fetch returns
+      const returnResponse = await fetch("/api/library/returns", { cache: "no-store" })
+      const returnData = await returnResponse.json()
+      setReturns(returnData.data || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch library data")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
     // Fetch books
     const bookResponse = await fetch("/api/library/books", { cache: "no-store" })
     const bookData = await bookResponse.json()
@@ -138,6 +176,25 @@ export function LibraryDashboard() {
 
   return (
     <div className="p-4 sm:p-6">
+      {isLoading && (
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-2xl mx-auto p-8">
+            <div className="grid grid-cols-1 gap-6">
+              <SkeletonCard height="1.25rem" width="full" />
+              <SkeletonCard height="1rem" width="3rem" />
+              <SkeletonTableRow cells={3} />
+            </div>
+          </div>
+        </div>
+      )}
+      {!isLoading && error && (
+        <AlertWithTitle
+          title="Library Error"
+          description={error}
+          variant="destructive"
+        />
+      )}
+
       <header className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
           Library Dashboard
@@ -153,7 +210,7 @@ export function LibraryDashboard() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-anglican-blue font-medium">Total Books</p>
-              <p className="font-bold text-2xl">{stats.totalBooks}</p>
+              <p className="font-bold text-2xl">{formatCurrency(stats.totalBooks)}</p>
             </div>
             <div>
               <p className="text-anglican-blue font-medium">Available</p>
@@ -168,7 +225,7 @@ export function LibraryDashboard() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-anglican-blue font-medium">Total Members</p>
-              <p className="font-bold text-2xl">{stats.totalMembers}</p>
+              <p className="font-bold text-2xl">{formatCurrency(stats.totalMembers)}</p>
             </div>
             <div>
               <p className="text-anglican-blue font-medium">Active Loans</p>
@@ -212,8 +269,22 @@ export function LibraryDashboard() {
                 <TableCell></TableCell>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {books.map((book) => (
+            {books.length === 0 ? (
+              <div className="text-center py-12">
+                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
+                <p className="text-anglican-blue text-lg font-medium mb-2">No Books Yet</p>
+                <p className="text-muted/60 text-sm">Add your first book to get started. Click below to search or add new titles.</p>
+                <Button
+                  variant="link"
+                  onClick={() => router.push("/parent/library/search")}
+                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
+                >
+                  Search Books
+                </Button>
+              </div>
+            ) : (
+              <TableBody>
+                {books.map((book) =>
                 <TableRow
                   key={book.id}
                   className="hover:bg-angle/5 dark:hover:bg-angle/80"
@@ -221,19 +292,19 @@ export function LibraryDashboard() {
                   <TableCell>{book.title}</TableCell>
                   <TableCell className="text-center">{book.author}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={book.category === "FICTION" ? "default" : book.category === "NON_FICTION" ? "secondary" : book.category === "REFERENCE" ? "destructive" : book.category === "BIOGRAPHY" ? "primary" : "info"} size="sm">
-                      {book.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{book.totalCopies}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={book.availableCopies > 0 ? "default" : "destructive"}
-                      size="sm"
-                    >
-                      {book.availableCopies} avail
-                    </Badge>
-                  </TableCell>
+<Badge variant={book.category === "FICTION" ? "default" : book.category === "NON_FICTION" ? "secondary" : book.category === "REFERENCE" ? "destructive" : book.category === "BIOGRAPHY" ? "primary" : "info"} size="sm">
+                       {book.category}
+                     </Badge>
+                   </TableCell>
+                   <TableCell className="text-right">{formatCurrency(book.totalCopies)}</TableCell>
+                   <TableCell className="text-center">
+                     <Badge
+                       variant={book.availableCopies > 0 ? "default" : "destructive"}
+                       size="sm"
+                     >
+                       {book.availableCopies} avail
+                     </Badge>
+                   </TableCell>
                   <TableCell>
                     <Button
                       size="icon"
@@ -275,8 +346,22 @@ export function LibraryDashboard() {
                 <TableCell></TableCell>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {members.map((member) => (
+            {members.length === 0 ? (
+              <div className="text-center py-12">
+                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
+                <p className="text-anglican-blue text-lg font-medium mb-2">No Members Yet</p>
+                <p className="text-muted/60 text-sm">Add your first member to get started. Students and staff can be added through the admin panel.</p>
+                <Button
+                  variant="link"
+                  onClick={() => router.push("/app/(portal)/admin/users")}
+                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
+                >
+                  Manage Members
+                </Button>
+              </div>
+            ) : (
+              <TableBody>
+                {members.map((member) => (
                 <TableRow
                   key={member.id}
                   className="hover:bg-angle/5 dark:hover:bg-angle/80"
@@ -335,11 +420,20 @@ export function LibraryDashboard() {
           <CardTitle>Active Loans {loans.length}</CardTitle>
         </CardHeader>
         <CardContent>
-          {loans.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-4">
-              No active loans.
-            </p>
-          ) : (
+{loans.length === 0 ? (
+              <div className="text-center py-12">
+                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
+                <p className="text-anglican-blue text-lg font-medium mb-2">No Active Loans</p>
+                <p className="text-muted/60 text-sm">All books have been returned. Consider adding new titles to the library.</p>
+                <Button
+                  variant="link"
+                  onClick={() => router.push("/parent/library/search")}
+                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
+                >
+                  Search Books
+                </Button>
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -376,7 +470,7 @@ export function LibraryDashboard() {
                     <TableCell className="text-center">
                       {loan.fineAmount > 0 ? (
                         <Badge variant="destructive" size="sm">
-                          KSh {loan.fineAmount}
+                          {formatCurrency(loan.fineAmount)}
                         </Badge>
                       ) : (
                         <div className="text-sm text-muted/60">—</div>
@@ -397,12 +491,11 @@ export function LibraryDashboard() {
             Overdue Items Requiring Attention
           </h3>
           <p className="text-destructive font-medium">
-            {stats.overdueItems} item(s) are overdue with outstanding fines totaling KSh {
+            {stats.overdueItems} item(s) are overdue with outstanding fines totaling {formatCurrency(
               loans
                 .filter((l) => l.status === "OVERDUE")
                 .reduce((sum, l) => sum + l.fineAmount, 0)
-                .toLocaleString()
-            }
+            )}
           </p>
           <Button
             variant="link"
@@ -415,7 +508,7 @@ export function LibraryDashboard() {
       )}
 
       {/* Returns Section */}
-      {stats.totalReturns > 0 && (
+      {stats.totalReturns > 0 ? (
         <Card className="mt-4 p-4 sm:p-6 border border-border-dark/30 rounded-lg">
           <h3 className="text-anglican-blue font-medium mb-3">
             Return Records {stats.totalReturns}
@@ -431,27 +524,25 @@ export function LibraryDashboard() {
             <div>
               <p className="text-anglican-blue font-medium">Paid Fines</p>
               <p className="font-bold text-success">
-                KSh {stats.returnedFineTotal.toLocaleString()}
+                {formatCurrency(stats.returnedFineTotal)}
               </p>
             </div>
             <div>
               <p className="text-anglican-blue font-medium">Unpaid Fines</p>
               <p className="font-bold text-destructive">
-                KSh {
+                {formatCurrency(
                 returns
                   .filter((r) => r.fineStatus === "UNPAID")
-                  .reduce((sum, r) => sum + r.fineAmount, 0)
-                  .toLocaleString()}
+                  .reduce((sum, r) => sum + r.fineAmount, 0))}
               </p>
             </div>
             <div>
               <p className="text-anglican-blue font-medium">Waived Fines</p>
               <p className="font-bold text-warning">
-                KSh {
+                {formatCurrency(
                 returns
                   .filter((r) => r.fineStatus === "WAIVED")
-                  .reduce((sum, r) => sum + r.fineAmount, 0)
-                  .toLocaleString()}
+                  .reduce((sum, r) => sum + r.fineAmount, 0))}
               </p>
             </div>
           </div>
@@ -474,7 +565,7 @@ export function LibraryDashboard() {
                   .map((returnRecord) => (
                     <TableRow
                       key={returnRecord.id}
-                      className="hover:bg-angle/5 dark:hover:bg-angle/80"
+className="odd:bg-angle/5 dark:odd:bg-angle/80 hover:bg-angle/5 dark:hover:bg-angle/80"
                     >
                       <TableCell>
                         <div className="font-medium">{returnRecord.bookTitle}</div>

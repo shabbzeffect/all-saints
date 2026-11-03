@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Dormitory {
   id: string
@@ -26,60 +27,30 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") as "ACTIVE" | "INACTIVE" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock dormitory data
-    const mockDormitories: Dormitory[] = [
-      {
-        id: "dorm-001",
-        name: "Boys' House",
-        type: "BOYS",
-        wing: "SCHOOL",
-        capacity: 120,
-        currentOccupancy: 95,
-        isActive: true,
-        createdAt: new Date(Date.now() - 604800000).toISOString(),
-      },
-      {
-        id: "dorm-002",
-        name: "Girls' House",
-        type: "GIRLS",
-        wing: "SCHOOL",
-        capacity: 110,
-        currentOccupancy: 88,
-        isActive: true,
-        createdAt: new Date(Date.now() - 604800000).toISOString(),
-      },
-      {
-        id: "dorm-003",
-        name: "Parish Mixed House",
-        type: "MIXED",
-        wing: "PARISH",
-        capacity: 50,
-        currentOccupancy: 42,
-        isActive: true,
-        createdAt: new Date(Date.now() - 1209600000).toISOString(),
-      },
-    ]
-
-    let filteredDormitories = mockDormitories
+    const where: any = {}
 
     if (wing) {
-      filteredDormitories = filteredDormitories.filter((d) => d.wing === wing)
+      where.wing = wing
     }
     if (type) {
-      filteredDormitories = filteredDormitories.filter((d) => d.type === type)
+      where.type = type
     }
     if (status) {
-      filteredDormitories = filteredDormitories.filter((d) => d.isActive ? "ACTIVE" : "INACTIVE" === status)
+      where.isActive = status === "ACTIVE"
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredDormitories = filteredDormitories.filter(
-        (d) => d.name.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
 
+    const dormitories = await prisma.dormitory.findMany({
+      where,
+      orderBy: { name: "asc" },
+    })
+
     // Calculate occupancy rates
-    const withRates = filteredDormitories.map((dorm) => ({
+    const withRates = dormitories.map((dorm) => ({
       ...dorm,
       occupancyRate: Math.round((dorm.currentOccupancy / dorm.capacity) * 100),
     }))
@@ -101,14 +72,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new dormitory
-    const newDormitory: Dormitory = {
-      id: `dorm-${Date.now().toString(36)}`,
-      ...body,
-      isActive: body.isAuto !== false, // Default to active
-      currentOccupancy: 0,
-      createdAt: new Date().toISOString(),
-    }
+    const newDormitory = await prisma.dormitory.create({
+      data: {
+        name: body.name,
+        type: body.type,
+        wing: body.wing,
+        capacity: body.capacity,
+        currentOccupancy: 0,
+        isActive: body.isAuto !== false, // Default to active
+      },
+    })
 
     return NextResponse.json({
       success: true,

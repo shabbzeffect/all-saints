@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface RoomAssignment {
   id: string
@@ -32,91 +33,35 @@ export async function GET(request: Request) {
     const isCurrent = searchParams.get("isCurrent") === "true"
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock assignment data
-    const mockAssignments: RoomAssignment[] = [
-      {
-        id: "assign-001",
-        roomId: "room-001",
-        studentId: "std-001",
-        assignedAt: new Date(Date.now() - 604800000).toISOString(),
-        assignedBy: "admin-001",
-        leaseStart: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() + 604800000).toISOString().split("T")[0],
-        isCurrent: true,
-        rentAmount: 50000,
-        studentName: "John Omondi",
-        studentAdmission: "ADM-2024-001",
-        status: "ACTIVE",
-      },
-      {
-        id: "assign-002",
-        roomId: "room-001",
-        studentId: "std-002",
-        assignedAt: new Date(Date.now() - 777600000).toISOString(),
-        assignedBy: "admin-001",
-        leaseStart: new Date(Date.now() - 777600000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() + 0).toISOString().split("T")[0],
-        isCurrent: false,
-        rentAmount: 50000,
-        studentName: "Jane Doe",
-        studentAdmission: "ADM-2024-002",
-        status: "ACTIVE",
-      },
-      {
-        id: "assign-003",
-        roomId: "room-002",
-        studentId: "std-003",
-        assignedAt: new Date(Date.now() - 86400000).toISOString(),
-        assignedBy: "admin-002",
-        leaseStart: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        isCurrent: true,
-        rentAmount: 80000,
-        studentName: "Peter Omondi",
-        studentAdmission: "ADM-2024-003",
-        status: "ACTIVE",
-      },
-      {
-        id: "assign-004",
-        roomId: "room-001",
-        studentId: "std-001",
-        assignedAt: new Date(Date.now() - 1036800000).toISOString(),
-        assignedBy: "admin-001",
-        leaseStart: new Date(Date.now() - 1036800000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        isCurrent: false,
-        rentAmount: 50000,
-        studentName: "John Omondi",
-        studentAdmission: "ADM-2024-001",
-        status: "EXPIRED",
-      },
-    ]
-
-    let filteredAssignments = mockAssignments
+    const where: any = {}
 
     if (roomId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.roomId === roomId)
+      where.roomId = roomId
     }
     if (studentId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.studentId === studentId)
+      where.studentId = studentId
     }
     if (status) {
-      filteredAssignments = filteredAssignments.filter((a) => a.status === status)
+      where.status = status
     }
     if (isCurrent !== undefined) {
-      filteredAssignments = filteredAssignments.filter((a) => a.isCurrent === isCurrent)
+      where.isCurrent = isCurrent
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredAssignments = filteredAssignments.filter(
-        (a) => a.studentName.toLowerCase().includes(termLower) ||
-        a.studentAdmission.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { studentName: { contains: searchTerm, mode: "insensitive" } },
+        { studentAdmission: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const assignments = await prisma.roomAssignment.findMany({
+      where,
+      orderBy: { assignedAt: "desc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredAssignments,
+      data: assignments,
     })
   } catch (error) {
     console.error("Boarding assignments error:", error)
@@ -131,14 +76,21 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new assignment
-    const newAssignment: RoomAssignment = {
-      id: `assign-${Date.now().toString(36)}`,
-      ...body,
-      assignedAt: new Date().toISOString(),
-      isCurrent: true,
-      status: "ACTIVE",
-    }
+    const newAssignment = await prisma.roomAssignment.create({
+      data: {
+        roomId: body.roomId,
+        studentId: body.studentId,
+        assignedAt: new Date().toISOString(),
+        assignedBy: body.assignedBy || "admin",
+        leaseStart: body.leaseStart,
+        leaseEnd: body.leaseEnd,
+        isCurrent: body.isCurrent ?? true,
+        rentAmount: body.rentAmount,
+        studentName: body.studentName,
+        studentAdmission: body.studentAdmission,
+        status: body.status || "ACTIVE",
+      },
+    })
 
     return NextResponse.json({
       success: true,

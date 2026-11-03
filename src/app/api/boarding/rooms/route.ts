@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Room {
   id: string
@@ -30,98 +31,41 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") as "ACTIVE" | "FULL" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock room data
-    const mockRooms: Room[] = [
-      {
-        id: "room-001",
-        dormitoryId: "dorm-001",
-        roomNumber: "R-101",
-        roomType: "SINGLE",
-        capacity: 1,
-        currentStudents: 1,
-        wing: "SCHOOL",
-        features: ["EN-SUITE"],
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "room-002",
-        dormitoryId: "dorm-001",
-        roomNumber: "R-102",
-        roomType: "DOUBLE",
-        capacity: 2,
-        currentStudents: 2,
-        wing: "SCHOOL",
-        features: ["EN-SUITE", "AC"],
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "room-003",
-        dormitoryId: "dorm-001",
-        roomNumber: "R-103",
-        roomType: "TRIPLE",
-        capacity: 3,
-        currentStudents: 2,
-        wing: "SCHOOL",
-        features: ["EN-SUITE"],
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "room-004",
-        dormitoryId: "dorm-002",
-        roomNumber: "R-201",
-        roomType: "SINGLE",
-        capacity: 1,
-        currentStudents: 0,
-        wing: "SCHOOL",
-        features: [],
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: "room-005",
-        dormitoryId: "dorm-002",
-        roomNumber: "R-202",
-        roomType: "DOUBLE",
-        capacity: 2,
-        currentStudents: 1,
-        wing: "SCHOOL",
-        features: ["AC"],
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-    ]
-
-    let filteredRooms = mockRooms
+    const where: any = {}
 
     if (dormitoryId) {
-      filteredRooms = filteredRooms.filter((r) => r.dormitoryId === dormitoryId)
+      where.dormitoryId = dormitoryId
     }
     if (roomType) {
-      filteredRooms = filteredRooms.filter((r) => r.roomType === roomType)
+      where.roomType = roomType
     }
     if (wing) {
-      filteredRooms = filteredRooms.filter((r) => r.wing === wing)
+      where.wing = wing
     }
     if (status) {
       if (status === "ACTIVE") {
-        filteredRooms = filteredRooms.filter((r) => r.isActive)
+        where.isActive = true
       }
       if (status === "FULL") {
-        filteredRooms = filteredRooms.filter((r) => r.currentStudents >= r.capacity && r.isActive)
+        where.AND = [
+          { currentStudents: { gte: capacity } },
+          { isActive: true }
+        ]
       }
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredRooms = filteredRooms.filter(
-        (r) => r.roomNumber.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { roomNumber: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
 
+    const rooms = await prisma.room.findMany({
+      where,
+      orderBy: { roomNumber: "asc" },
+    })
+
     // Calculate occupancy rates
-    const withRates = filteredRooms.map((room) => ({
+    const withRates = rooms.map((room) => ({
       ...room,
       occupancyRate: Math.round((room.currentStudents / room.capacity) * 100),
       isFull: room.currentStudents >= room.capacity,
@@ -144,15 +88,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new room
-    const newRoom: Room = {
-      id: `room-${Date.now().toString(36)}`,
-      ...body,
-      currentStudents: 0,
-      isActive: true,
-      features: body.features || [],
-      createdAt: new Date().toISOString(),
-    }
+    const newRoom = await prisma.room.create({
+      data: {
+        dormitoryId: body.dormitoryId,
+        roomNumber: body.roomNumber,
+        roomType: body.roomType,
+        capacity: body.capacity,
+        currentStudents: 0,
+        wing: body.wing,
+        features: body.features || [],
+        isActive: true,
+      },
+    })
 
     return NextResponse.json({
       success: true,

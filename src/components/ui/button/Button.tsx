@@ -1,8 +1,11 @@
+"use client"
+
 /* Button.tsx
  * Base button component for SaintsHub
  * Variants: default, primary, secondary, destructive, ghost, outline
  * Sizes: default, sm, lg, icon
  * Features: loading state, full accessibility support
+ * NOTE: This component uses React hooks and must be a Client Component
  */
 
 import React from "react"

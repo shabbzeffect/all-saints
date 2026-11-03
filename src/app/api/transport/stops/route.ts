@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
 
 interface Stop {
   id: string
@@ -22,66 +23,26 @@ export async function GET(request: Request) {
     const type = searchParams.get("type") as "PICKUP" | "DROPOFF" | "DESIGNATED" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    // Mock stop data
-    const mockStops: Stop[] = [
-      {
-        id: "stop-001",
-        name: "School Main Gate",
-        type: "PICKUP",
-        location: "Main Entrance",
-        latitude: -1.2833,
-        longitude: 36.8167,
-        orderIndex: 1,
-        isActive: true,
-      },
-      {
-        id: "stop-002",
-        name: "Railways Station",
-        type: "DROPOFF",
-        location: "Railways Area",
-        latitude: -1.2900,
-        longitude: 36.8200,
-        orderIndex: 2,
-        isActive: true,
-      },
-      {
-        id: "stop-003",
-        name: "Westlands Roundabout",
-        type: "PICKUP",
-        location: "Westlands",
-        latitude: -1.2950,
-        longitude: 36.8300,
-        orderIndex: 3,
-        isActive: true,
-      },
-      {
-        id: "stop-004",
-        name: "Kilimani Market",
-        type: "DROPOFF",
-        location: "Kilimani",
-        latitude: -1.3000,
-        longitude: 36.8250,
-        orderIndex: 4,
-        isActive: true,
-      },
-    ]
-
-    let filteredStops = mockStops
+    const where: any = {}
 
     if (type) {
-      filteredStops = filteredStops.filter((s) => s.type === type)
+      where.type = type
     }
     if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredStops = filteredStops.filter(
-        (s) => s.name.toLowerCase().includes(termLower) ||
-        s.location.toLowerCase().includes(termLower)
-      )
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { location: { contains: searchTerm, mode: "insensitive" } },
+      ]
     }
+
+    const stops = await prisma.stop.findMany({
+      where,
+      orderBy: { orderIndex: "asc" },
+    })
 
     return NextResponse.json({
       success: true,
-      data: filteredStops,
+      data: stops,
     })
   } catch (error) {
     console.error("Transport stops error:", error)
@@ -96,13 +57,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Create new stop record
-    const newStop: Stop = {
-      id: `stop-${Date.now().toString(36)}`,
-      ...body,
-      isActive: true,
-      orderIndex: body.orderIndex ?? 0,
-    }
+    const newStop = await prisma.stop.create({
+      data: {
+        name: body.name,
+        type: body.type,
+        location: body.location,
+        latitude: body.latitude,
+        longitude: body.longitude,
+        orderIndex: body.orderIndex ?? 0,
+        isActive: body.isActive ?? true,
+      },
+    })
 
     return NextResponse.json({
       success: true,
