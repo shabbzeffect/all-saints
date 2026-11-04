@@ -1,6 +1,6 @@
+"use client"
 /* Onboarding Page - SaintsHub
 Provides: New user onboarding, institution setup, role selection
-"use client"
 */
 import { cn } from "@/lib/config"
 import { Input, Button } from "@/components/ui"
