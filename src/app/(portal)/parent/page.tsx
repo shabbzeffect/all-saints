@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+"use client"
 import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui/badge"

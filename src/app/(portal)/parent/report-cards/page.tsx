@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+"use client"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"

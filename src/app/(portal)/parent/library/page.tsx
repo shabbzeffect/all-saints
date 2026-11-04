@@ -1,6 +1,5 @@
 /* Parent Library - SaintsHub Parent Portal
 Provides: View child's borrowed books, fines, reservations
-"use client"
 */
 import { Skeleton, Alert, AlertWithTitle } from "@/components/ui"
 import { Input } from "@/components/ui"

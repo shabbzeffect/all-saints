@@ -1,0 +1,15 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next/standalone",
+  "env": {
+    "FEATURE_LIBRARY_ENABLED": "true",
+    "FEATURE_PAYROLL_ENABLED": "true",
+    "FEATURE_BOARDING_ENABLED": "true",
+    "FEATURE_TRANSPORT_ENABLED": "true",
+    "FEATURE_SCHOOL_ENABLED": "true",
+    "FEATURE_PARISH_ENABLED": "true",
+    "FEATURE_PWA_ENABLED": "true",
+    "DEMO_MODE": "true"
+  }
+}

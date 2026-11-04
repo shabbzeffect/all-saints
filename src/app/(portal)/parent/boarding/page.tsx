@@ -1,6 +1,6 @@
+"use client"
 /* Parent Boarding - SaintsHub Parent Portal
 Provides: View child's boarding status, fees, exeat pass requests
-"use client"
 */
 import { Input } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"

@@ -1,6 +1,6 @@
+"use client"
 /* Executive Dashboard - SaintsHub
 Provides: role-aware dashboard with separate school and parish KPIs
-"use client"
 */
 import { cn } from "@/lib/config"
 import { Card, Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui"
