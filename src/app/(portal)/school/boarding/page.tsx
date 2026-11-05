@@ -1,3 +1,5 @@
+"use client"
+
 /* School Boarding - SaintsHub School Portal
 Provides: Boarding student management, dormitory overview, fee tracking
 */

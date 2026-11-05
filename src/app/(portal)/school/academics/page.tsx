@@ -1,6 +1,7 @@
+"use client"
+
 /* School Academics - SaintsHub School Portal
 Provides: Assessment management, report cards, academic records
-"use client"
 */
 import { Input } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"

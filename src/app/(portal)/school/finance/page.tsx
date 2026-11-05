@@ -1,3 +1,5 @@
+"use client"
+
 /* School Finance - SaintsHub School Portal
 Provides: Fee structure, payment tracking, financial reports
 */

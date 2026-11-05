@@ -1,3 +1,5 @@
+"use client"
+
 /* Dashboard Layout - SaintsHub
 Provides: role-aware navigation, institution switcher, active institution banner
 */

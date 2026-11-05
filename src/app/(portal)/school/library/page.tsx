@@ -1,3 +1,5 @@
+"use client"
+
 /* School Library - SaintsHub School Portal
 Provides: Book catalog, member management, loan tracking
 */

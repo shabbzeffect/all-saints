@@ -1,3 +1,7 @@
+'use server'
+
+import 'server-only'
+
 // ============================================================================
 // Auth.js Configuration - SaintsHub Authentication
 // ============================================================================
@@ -12,7 +16,6 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "../db"
 import { sendSMSOTP, verifySMSOTP } from "../integrations/sms"
 import * as otplib from "otplib"
-import nodemailer from "nodemailer"
 import { Wing, AuditAction, AuditEvent, UserStatus, NotificationType, JobType, BackgroundJobStatus } from "@prisma/client"
 
 // Demo mode configuration
@@ -347,7 +350,7 @@ export async function verifyLoginOTP(phoneNumber: string, otpCode: string) {
 }
 
 // Normalize Kenyan phone numbers to +254 format
-export function normalizePhoneNumber(phone: string): string {
+export async function normalizePhoneNumber(phone: string): Promise<string> {
   let normalized = phone.trim()
 
   // Remove leading +, 0, 254
@@ -364,17 +367,17 @@ export function normalizePhoneNumber(phone: string): string {
 // ============================================================================
 
 // Generate TOTP secret for user
-export function generateTotpSecret(): string {
+export async function generateTotpSecret(): Promise<string> {
   return otplib.authenticator.generateSecret()
 }
 
 // Generate TOTP code
-export function getTotpCode(secret: string): string {
+export async function getTotpCode(secret: string): Promise<string> {
   return otplib.authenticator.generate(secret)
 }
 
 // Verify TOTP code
-export function verifyTotpCode(secret: string, code: string): boolean {
+export async function verifyTotpCode(secret: string, code: string): Promise<boolean> {
   return otplib.authenticator.check(code, secret)
 }
 
@@ -388,9 +391,12 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   institutionName: string
 ) {
+  // Dynamically import nodemailer to avoid fs module error in browser build
+  const { createTransport } = await import("nodemailer")
+
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`
 
-  const transporter = nodemailer.createTransport({
+  const transporter = createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,
     secure: false,
@@ -437,6 +443,9 @@ export async function sendEmail({
   fromEmail?: string
   fromName?: string
 }) {
+  // Dynamically import nodemailer to avoid fs module error in browser build
+  const { createTransport } = await import("nodemailer")
+
   const transport = {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || "587"),
@@ -462,7 +471,7 @@ export async function sendEmail({
   }
 
   // In production, send via nodemailer
-  const transporter = nodemailer.createTransport(transport)
+  const transporter = createTransport(transport)
   const result = await transporter.sendMail(mailOptions)
 
   return result

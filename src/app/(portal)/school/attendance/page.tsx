@@ -1,3 +1,5 @@
+"use client"
+
 /* School Attendance - SaintsHub School Portal
 Provides: Attendance tracking, summary, and marking
 */

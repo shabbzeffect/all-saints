@@ -1,3 +1,5 @@
+"use client"
+
 /* School Students - SaintsHub School Portal
 Provides: Student list, search, enrollment, and basic student information
 */

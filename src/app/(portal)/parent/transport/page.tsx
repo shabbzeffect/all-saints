@@ -1,6 +1,7 @@
+"use client"
+
 /* Parent Transport - SaintsHub Parent Portal
 Provides: View child's transport assignments, fees, request changes
-"use client"
 */
 import { Input } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"

@@ -1,3 +1,5 @@
+"use client"
+
 /* Student Detail - SaintsHub School Portal
 Provides: Comprehensive student boarding details, assignment info, billing history
 */
