@@ -53,6 +53,39 @@
   border-color: hsl(var(--border));
 }
 
+::selection {
+  background: #d9a441;
+  color: #1f2a44;
+}
+
+@keyframes ribbon-glow {
+  0% { opacity: 0.55; filter: saturate(0.8); }
+  35% { opacity: 1; filter: saturate(1.35) brightness(1.12); }
+  100% { opacity: 0.92; filter: saturate(1); }
+}
+
+@keyframes ribbon-shimmer {
+  0% { transform: translateX(-120%); opacity: 0; }
+  15% { opacity: 0.75; }
+  60% { opacity: 0; }
+  100% { transform: translateX(140%); opacity: 0; }
+}
+
+.ribbon-glow {
+  animation: ribbon-glow 2.6s ease-out 0.4s 1 both;
+}
+
+.ribbon-shimmer {
+  animation: ribbon-shimmer 3.2s cubic-bezier(0.22, 1, 0.36, 1) 0.8s 1 both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ribbon-glow,
+  .ribbon-shimmer {
+    animation: none;
+  }
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));

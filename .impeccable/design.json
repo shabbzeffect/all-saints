@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T00:00:00.000Z",
+  "title": "Design System: All Saints Mushililie — Academy & Parish",
+  "extensions": {
+    "colorMeta": {
+      "whitewash": { "role": "neutral", "displayName": "Whitewash", "canonical": "#f5f3ed", "tonalRamp": ["#57544c", "#706d64", "#89867e", "#a3a099", "#bdb9b2", "#d5d2cb", "#e8e5de", "#f5f3ed"] },
+      "whitewash-deep": { "role": "neutral", "displayName": "Whitewash Deep", "canonical": "#efede6", "tonalRamp": ["#535047", "#6b685e", "#848077", "#9f9b92", "#b9b5ac", "#d3cfc6", "#e2ded4", "#efede6"] },
+      "map-sand": { "role": "neutral", "displayName": "Map Sand", "canonical": "#e9e6dc", "tonalRamp": ["#55524a", "#6f6c63", "#88857d", "#a19e95", "#bab7ae", "#d2cfc6", "#dedbce", "#e9e6dc"] },
+      "chapel-ink": { "role": "primary", "displayName": "Chapel Ink", "canonical": "#1f2a44", "tonalRamp": ["#05070f", "#0d1322", "#141b30", "#1f2a44", "#2a3a5f", "#3d4f7a", "#5d6f99", "#8494b8"] },
+      "chapel-ink-hover": { "role": "primary", "displayName": "Chapel Ink Hover", "canonical": "#2a3a5f", "tonalRamp": ["#0d1426", "#16203a", "#1f2a44", "#2a3a5f", "#35496f", "#475c85", "#617398", "#8b99b8"] },
+      "morning-gold": { "role": "primary", "displayName": "Morning Gold", "canonical": "#d9a441", "tonalRamp": ["#2a1e05", "#3d2d0a", "#54400f", "#6f5410", "#8f6b18", "#b8871f", "#d9a441", "#f0cd82"] },
+      "morning-gold-hover": { "role": "primary", "displayName": "Morning Gold Hover", "canonical": "#e6b654", "tonalRamp": ["#33270c", "#473614", "#5c481e", "#745c28", "#8f7132", "#b8934a", "#e6b654", "#f4d98f"] },
+      "chapel-gold": { "role": "primary", "displayName": "Chapel Gold", "canonical": "#e9bc55", "tonalRamp": ["#33280b", "#46371a", "#5c4a22", "#7a612e", "#9a7d3f", "#c9a04b", "#e9bc55", "#f6d98c"] },
+      "gold-deep": { "role": "primary", "displayName": "Deep Gold", "canonical": "#6f5410", "tonalRamp": ["#171104", "#241a06", "#33250a", "#45320e", "#54400f", "#6f5410", "#8a6d24", "#a98d49"] },
+      "stained-ruby": { "role": "tertiary", "displayName": "Stained Ruby", "canonical": "#8e2a3c", "tonalRamp": ["#1f080d", "#33101a", "#471825", "#5c1f30", "#73263a", "#8e2a3c", "#a94a5d", "#c57a8a"] },
+      "timber-walnut": { "role": "secondary", "displayName": "Timber Walnut", "canonical": "#6b4a2b", "tonalRamp": ["#1c110a", "#2b1a10", "#3d2812", "#4f3320", "#573c24", "#6b4a2b", "#8a6240", "#ab8562"] },
+      "parish-green": { "role": "secondary", "displayName": "Parish Green", "canonical": "#1f4d33", "tonalRamp": ["#081a10", "#0e2418", "#123324", "#163c28", "#1a4630", "#1f4d33", "#2f6b48", "#4f8f6c"] },
+      "parish-mist": { "role": "secondary", "displayName": "Parish Mist", "canonical": "#eef3ea", "tonalRamp": ["#39443a", "#4a564c", "#5e6b61", "#77847a", "#939f95", "#adb8b0", "#ccd5ca", "#eef3ea"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Home hero only — 'Faith. Mind. Character.' at 0.98 line-height, -0.03em tracking." },
+      "headline": { "displayName": "Headline", "purpose": "One serif h1 per page; section h2s. Never sans." },
+      "body": { "displayName": "Body", "purpose": "Proof lines, notes, FAQ answers; measure 52–75ch on system sans." },
+      "label": { "displayName": "Label", "purpose": "Small-caps form labels, band markers, captions. #6f5410 on light, #d9a441 on dark." }
+    },
+    "shadows": [
+      { "name": "ambient-stained-glass", "value": "0 24px 60px -24px rgba(31,42,68,0.55)", "purpose": "The one deep ambient lift; bound to the home ribbon panel." },
+      { "name": "visitor-book-under-edge", "value": "0 1px 0 0 #d9a441", "purpose": "1px gold resting seam under the visitor-book card — a light edge, not a drop shadow." }
+    ],
+    "motion": [
+      { "name": "ribbon-glow", "value": "ribbon-glow 2.6s ease-out 0.4s 1 both", "purpose": "One-time glow of the Chapel shaft on load: opacity 0.55→1→0.92, saturate/brightness bloom, then settles." },
+      { "name": "ribbon-shimmer", "value": "ribbon-shimmer 3.2s cubic-bezier(0.22, 1, 0.36, 1) 0.8s 1 both", "purpose": "A single shaft of white gradient sweeping the ribbon once. Never loops." },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { .ribbon-glow, .ribbon-shimmer { animation: none; } }", "purpose": "Both ribbon animations are disabled when the user asks for reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Gold Button (Primary CTA)",
+      "kind": "button",
+      "refersTo": "button-gold",
+      "description": "The door CTA — gold field, ink serif bold uppercase label; hover deepens to #e6b654.",
+      "html": "<button class=\"ds-btn-gold\">BOOK OUR SCHOOL VISIT</button>",
+      "css": ".ds-btn-gold { background: #d9a441; color: #1f2a44; border: none; border-radius: 6px; padding: 10px 16px; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; } .ds-btn-gold:hover { background: #e6b654; } .ds-btn-gold:focus-visible { outline: none; box-shadow: 0 0 0 2px #f5f3ed, 0 0 0 4px #d9a441; } .ds-btn-gold:disabled { opacity: 0.6; cursor: default; }"
+    },
+    {
+      "name": "Ink Button (Office Send)",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Ink primary for utility submits (contact form); hover deepens to #2a3a5f.",
+      "html": "<button class=\"ds-btn-ink\">Send to the office</button>",
+      "css": ".ds-btn-ink { background: #1f2a44; color: #f5f3ed; border: none; border-radius: 6px; padding: 10px 16px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; } .ds-btn-ink:hover { background: #2a3a5f; } .ds-btn-ink:focus-visible { outline: none; box-shadow: 0 0 0 2px #f5f3ed, 0 0 0 4px #d9a441; }"
+    },
+    {
+      "name": "Outline Button (on dark)",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Ghost outline on ink/green panels; hover turns border and text gold.",
+      "html": "<button class=\"ds-btn-outline-dark\">+254 712 000 100</button>",
+      "css": ".ds-btn-outline-dark { background: transparent; color: #f5f3ed; border: 1px solid rgba(245,243,237,0.3); border-radius: 6px; padding: 12px 24px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s; } .ds-btn-outline-dark:hover { border-color: #d9a441; color: #d9a441; } .ds-btn-outline-dark:focus-visible { outline: 2px solid #d9a441; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Whitewash-ground field, hairline border; focus shifts border to gold with a 2px gold ring.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Parent name</span><input class=\"ds-input\" placeholder=\"e.g. Mary Wafula\" required /></label>",
+      "css": ".ds-field { display: block; } .ds-field-label { display: block; margin-bottom: 4px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(31,42,68,0.7); } .ds-input { width: 100%; box-sizing: border-box; background: #f5f3ed; color: #1f2a44; border: 1px solid rgba(31,42,68,0.15); border-radius: 6px; padding: 8px 12px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; } .ds-input::placeholder { color: rgba(31,42,68,0.7); } .ds-input:focus { border-color: #d9a441; box-shadow: 0 0 0 2px rgba(217,164,65,0.4); }"
+    },
+    {
+      "name": "Visitor Book",
+      "kind": "custom",
+      "refersTo": "visitor-book",
+      "description": "The signature conversion card — white rounded-xl, gold 1px under-edge seam, demo submissions stay on-device.",
+      "html": "<form class=\"ds-visitor-book\" aria-label=\"Sign the visitor book\"><p class=\"ds-vb-title\">Sign the visitor book</p><p class=\"ds-vb-sub\">Book a free school visit — it takes under a minute.</p><input class=\"ds-vb-input\" placeholder=\"Parent name\" required aria-label=\"Parent name\" /><input class=\"ds-vb-input\" type=\"tel\" placeholder=\"0712 345 678\" required aria-label=\"Phone (M-Pesa)\" /><button class=\"ds-vb-submit\" type=\"submit\">Book our school visit</button></form>",
+      "css": ".ds-visitor-book { background: #ffffff; border: 1px solid rgba(31,42,68,0.15); border-radius: 12px; padding: 20px; box-shadow: 0 1px 0 0 #d9a441; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; } .ds-vb-title { margin: 0; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; font-weight: 700; color: #1f2a44; } .ds-vb-sub { margin: 2px 0 12px; font-size: 12px; color: rgba(31,42,68,0.7); } .ds-vb-input { width: 100%; box-sizing: border-box; background: #f5f3ed; border: 1px solid rgba(31,42,68,0.15); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 14px; color: #1f2a44; outline: none; } .ds-vb-input:focus { border-color: #d9a441; box-shadow: 0 0 0 2px rgba(217,164,65,0.4); } .ds-vb-submit { width: 100%; background: #d9a441; color: #1f2a44; border: none; border-radius: 6px; padding: 10px 16px; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; } .ds-vb-submit:hover { background: #e6b654; } .ds-vb-submit:focus-visible { outline: 2px solid #d9a441; outline-offset: 2px; }"
+    },
+    {
+      "name": "Stained-Glass School Day (Ribbon)",
+      "kind": "custom",
+      "refersTo": "door-academy",
+      "description": "The home hero's continuous day: seven gradient shafts in fixed order under an arch-top; Chapel glows once on load.",
+      "html": "<figure class=\"ds-ribbon\"><div class=\"ds-ribbon-arch\"><div class=\"ds-shaft ds-shaft-flag\"><span>07:10</span><b>FLAG</b></div><div class=\"ds-shaft ds-shaft-chapel\"><span>07:30</span><b>CHAPEL</b></div><div class=\"ds-shaft ds-shaft-lessons\"><span>08:00</span><b>LESSONS</b></div><div class=\"ds-shaft ds-shaft-play\"><span>10:30</span><b>PLAY</b></div><div class=\"ds-shaft ds-shaft-duty\"><span>13:00</span><b>DUTY</b></div><div class=\"ds-shaft ds-shaft-games\"><span>15:30</span><b>GAMES &amp; CLUBS</b></div><div class=\"ds-shaft ds-shaft-vespers\"><span>17:00</span><b>VESPERS</b></div></div><figcaption class=\"ds-ribbon-cap\">One school day, one continuous light — 07:10 to vespers</figcaption></figure>",
+      "css": ".ds-ribbon { margin: 0; } .ds-ribbon-arch { overflow: hidden; border: 2px solid rgba(31,42,68,0.25); border-radius: 50% 50% 0 0 / 14% 14% 0 0; box-shadow: 0 24px 60px -24px rgba(31,42,68,0.55); display: flex; flex-direction: column; } .ds-shaft { display: flex; flex: 1; align-items: center; justify-content: space-between; padding: 0 16px; min-height: 56px; border-bottom: 1px solid rgba(0,0,0,0.25); color: #ffffff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; } .ds-shaft:last-child { border-bottom: none; } .ds-shaft span { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.9; } .ds-shaft b { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; } .ds-shaft-flag { background: linear-gradient(160deg, #c94a3a, #8e2a3c); } .ds-shaft-chapel { background: linear-gradient(160deg, #e9bc55, #c98f1e); color: #241703; } .ds-shaft-lessons { background: linear-gradient(160deg, #1e6d82, #0e3f4f); } .ds-shaft-play { background: linear-gradient(160deg, #2e6b4f, #1f4d33); } .ds-shaft-duty { background: linear-gradient(160deg, #8a6a42, #4a3220); } .ds-shaft-games { background: linear-gradient(160deg, #4b5aa8, #232c5e); } .ds-shaft-vespers { background: linear-gradient(160deg, #6a4a8a, #33204f); } .ds-ribbon-cap { margin-top: 8px; text-align: center; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(31,42,68,0.7); } @media (prefers-reduced-motion: reduce) { .ds-shaft-chapel { animation: none; } }"
+    },
+    {
+      "name": "FAQ Disclosure",
+      "kind": "custom",
+      "refersTo": "site-nav",
+      "description": "details/summary accordion; serif bold question, gold-deep plus rotates 45° on open.",
+      "html": "<details class=\"ds-faq\"><summary class=\"ds-faq-q\">How much are fees?<span class=\"ds-faq-plus\" aria-hidden=\"true\">+</span></summary><p class=\"ds-faq-a\">The boarding levy is KSh 18,000 per term, all-in. Full structure shared on visit day. (Demo figures.)</p></details>",
+      "css": ".ds-faq { border-bottom: 1px solid rgba(31,42,68,0.12); padding: 16px 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; } .ds-faq-q { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; list-style: none; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 18px; font-weight: 700; color: #1f2a44; } .ds-faq-q::-webkit-details-marker { display: none; } .ds-faq-plus { color: #6f5410; font-size: 20px; transition: transform 0.2s; } .ds-faq[open] .ds-faq-plus { transform: rotate(45deg); } .ds-faq-a { margin: 8px 0 0; max-width: 48rem; line-height: 1.625; color: rgba(31,42,68,0.8); } .ds-faq-q:focus-visible { outline: 2px solid #d9a441; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campus Map Spot",
+      "kind": "custom",
+      "refersTo": "door-parish",
+      "description": "Focusable SVG map stops — keyboard and hover swap the stroke to gold; real text via <title>.",
+      "html": "<svg viewBox=\"0 0 200 120\" role=\"img\" aria-label=\"Stylised campus map\" class=\"ds-map\"><rect class=\"ds-map-boundary\" x=\"4\" y=\"4\" width=\"192\" height=\"112\" rx=\"8\" fill=\"#e9e6dc\" stroke=\"#1f2a44\" stroke-opacity=\"0.35\" stroke-width=\"2\" stroke-dasharray=\"10 8\"/><g class=\"ds-map-spot\" tabindex=\"0\" role=\"img\" aria-label=\"The Chapel — daily assembly 07:30, Eucharist 08:00 and 10:30\"><title>The Chapel — daily assembly 07:30, Eucharist 08:00 and 10:30</title><path class=\"ds-map-shape\" d=\"M90 52 L100 28 L110 52 Z\" fill=\"#1f2a44\" stroke=\"#1f2a44\" stroke-width=\"2\"/><rect class=\"ds-map-shape\" x=\"84\" y=\"52\" width=\"32\" height=\"34\" fill=\"#1f2a44\" stroke=\"#1f2a44\" stroke-width=\"2\"/></g></svg>",
+      "css": ".ds-map { width: 100%; background: #e9e6dc; border: 1px solid rgba(31,42,68,0.15); border-radius: 16px; } .ds-map-spot { cursor: pointer; } .ds-map-shape { transition: stroke 0.15s, stroke-width 0.15s; } .ds-map-spot:hover .ds-map-shape, .ds-map-spot:focus-visible .ds-map-shape { stroke: #d9a441; stroke-width: 3px; } .ds-map-spot:focus-visible { outline: none; }"
+    },
+    {
+      "name": "Site Nav",
+      "kind": "nav",
+      "refersTo": "site-nav",
+      "description": "Sticky blurred whitewash bar — crest + wordmark left, links center-right, ink-outline Portal login.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"/\" aria-label=\"SAINTS — All Saints Mushililie home\"><svg viewBox=\"0 0 40 40\" width=\"36\" height=\"36\" role=\"img\" aria-label=\"All Saints Mushililie crest\"><circle cx=\"20\" cy=\"20\" r=\"19\" fill=\"#1f2a44\" stroke=\"#d9a441\" stroke-width=\"2\"/><path d=\"M20 7v26M11 15h18\" stroke=\"#f5f3ed\" stroke-width=\"3.2\" stroke-linecap=\"round\"/></svg><span class=\"ds-nav-word\">All Saints Mushililie<small>ACADEMY &amp; PARISH</small></span></a><nav class=\"ds-nav-links\" aria-label=\"Site\"><a href=\"/about\">About</a><a href=\"/admissions\" aria-current=\"page\">Admissions</a></nav><a class=\"ds-nav-portal\" href=\"/login\">Portal login</a></header>",
+      "css": ".ds-nav { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; background: rgba(245,243,237,0.9); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(31,42,68,0.1); } .ds-nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; } .ds-nav-word { display: flex; flex-direction: column; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 18px; font-weight: 700; color: #1f2a44; line-height: 1.15; } .ds-nav-word small { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6f5410; } .ds-nav-links { display: flex; gap: 20px; } .ds-nav-links a { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 500; color: rgba(31,42,68,0.7); text-decoration: none; } .ds-nav-links a[aria-current='page'] { color: #1f2a44; text-decoration: underline; text-decoration-color: #d9a441; text-decoration-thickness: 2px; text-underline-offset: 4px; } .ds-nav-portal { border: 1px solid #1f2a44; border-radius: 6px; padding: 6px 14px; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: #1f2a44; text-decoration: none; transition: background 0.2s, color 0.2s; } .ds-nav-portal:hover { background: #1f2a44; color: #f5f3ed; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Chapel in Morning Light",
+    "overview": "The shipped public world (`src/app/(public)/*`, `src/components/public/*`, `src/app/globals.css`) is a chapel at 7:10 a.m., not a brochure: a cool whitewash ground, deep chapel ink, timber walnut, and morning gold used only as light. The category default (photo-collage hero + three icon cards) and the cream-brochure rendition were rejected outright; in their place a full-height \"nave\" first viewport pairs the word and the visitor-book form on the left with a stained-glass school-day ribbon on the right, and every page after deepens the same offer — book a visit. Serif in full ink contrast; humanist system sans for the reader; crisp edges and working parts, never fog, never haze.\n\nAnglican identity is non-negotiable in tone — reverent, warm, community-rooted; never corporate or salesy. All content is labelled illustrative demo copy, swappable without layout change. The public route group renders without `PortalShell`; signed-in users are handed to `/login`. Light Kiswahili is welcome where natural.",
+    "keyCharacteristics": [
+      "One continuous act of light: the ribbon, the hairline arch, gold as scarce light (CTA, icons, underlines, selection), never as decorative wash",
+      "Full ink contrast on whitewash; nothing fogged",
+      "Ledger rows and dividing hairlines instead of card grids",
+      "Georgia-class serif voices the institution; system sans serves the reader",
+      "Two shadows in the entire system, ever",
+      "Authored SVG geometry only (arch, crest, map, ribbon) — no photographs ship"
+    ],
+    "rules": [
+      { "name": "The Gold-As-Light Rule", "body": "On light grounds gold (#d9a441) is graphics only — icons, underlines, dots, the 1px form under-edge — because it sits near 2:1 on whitewash. Small-caps text on light uses Deep Gold (#6f5410). Gold carries bold text only on dark grounds (ink, green).", "section": "colors" },
+      { "name": "The Rare Ruby Rule", "body": "Ruby appears exactly twice in the system: the ribbon's flag shaft terminus and the visitor-book error message. Adding a third use is a system violation, not a palette extension.", "section": "colors" },
+      { "name": "The 12-to-1 Rule", "body": "Ink on whitewash computes to roughly 12.8:1. Keep primary text there, secondary ink text at ≥/70 opacity (≈5:1), and reserve /60–/65 for genuinely non-essential print. The finish review signed off this floor; do not thin it further.", "section": "colors" },
+      { "name": "The Two Voices Rule", "body": "Serif names; sans serves. Never set long-form body in serif; never set the wordmark or display lines in sans.", "section": "typography" },
+      { "name": "The Two Shadows Rule", "body": "A third shadow is a bug. Focus is expressed with the gold ring (`focus:ring-2 ring-[#d9a441]/40` + border shift), never with shadow; disabled state is 60% opacity.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do carry body text as ink on whitewash (≈12.8:1); secondary ink at ≥/70 (≈5:1); Deep Gold #6f5410 for small-caps on light.",
+      "Do keep gold as light — on dark grounds for bold CTAs and icons; on light grounds for icons, underlines, focus rings, ::selection, and the visitor-book 1px under-edge.",
+      "Do end every page on the visit invitation; keep the visitor book reachable in the first viewport; never link the offer away to another page.",
+      "Do draw ornament as honest geometry — arch, crest, chapel map, ribbon — as CSS/SVG only.",
+      "Do divide ledgers with hairlines (#1f2a44/10–/12), not cards; rows over grids.",
+      "Do label demo figures illustrative and keep them swappable without layout change; no invented dates, founding stories, or staff.",
+      "Do keep keyboard focus visible everywhere: gold ring on fields, gold stroke on map spots, aria-current in nav, role=\"status\" on the visitor-book success panel.",
+      "Do keep the two shipped shadows only; focus and disabled are ring/opacity, not elevation.",
+      "Do respect prefers-reduced-motion — ribbon glow and shimmer are disabled, not slowed."
+    ],
+    "donts": [
+      "Don't introduce a second accent hue or reuse ruby outside its two sanctioned uses (ribbon flag terminus, visitor-book error).",
+      "Don't set gold #d9a441 text on whitewash (≈2:1) — not for labels, not for 'accent' words; that is what Deep Gold is for.",
+      "Don't ship external fonts, images, map tiles, or CDN assets — the system renders from system stacks and authored SVG alone.",
+      "Don't wrap public pages in PortalShell, and don't style Portal login as a gold CTA — it is a quiet ink outline.",
+      "Don't add a kicker/eyebrow above any heading, gradient text, or icon-card grids — the heading carries its own weight; ledger rows carry the content.",
+      "Don't add a third shadow, hard offset shadows, or a 1px border under a wide soft shadow (ghost card).",
+      "Don't present illustrative content as fact (fees, dates, history, counts) — it stays labelled; the finish review shipped it that way.",
+      "Don't reorder or recolour the seven ribbon shafts — they are the school day, 07:10 to vespers, in order.",
+      "Don't put the serif on long-form body copy or the sans on the wordmark/display lines.",
+      "Don't let secondary text thin below /70 opacity when it carries meaning — the /60 tier is for notes and non-essential print only."
+    ]
+  }
+}

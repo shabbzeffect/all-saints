@@ -2,3 +2,9 @@
 .env*
 node_modules
 node_modules
+
+# impeccable runtime artifacts (design.json + surfaces/ are committed)
+.impeccable/questions/
+.impeccable/review/
+.impeccable/decision-round.json
+.impeccable/direction-contract.md

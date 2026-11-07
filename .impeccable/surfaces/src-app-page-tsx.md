@@ -1,0 +1,22 @@
+---
+version: 1
+slug: "src-app-page-tsx"
+primary_target: "src/app/page.tsx"
+related_targets: []
+---
+
+# Surface brief — SaintsHub public site (primary: `src/app/page.tsx`)
+
+Mode: Persuade. Audience: parents evaluating admission (PP1–Grade 9, day/boarding, Kakamega). Job: decide to visit and apply; CTA is the visit booking inside the form's own vocabulary — not a link elsewhere. Visitor belief after 30s: "this school forms the whole child — faith, mind and character — in a small family; I can book a visit right here."
+
+Scope: public route group in SAINTS (Next.js 14, app router) inside the same deployment as the portal; no auth required; `/` becomes the public homepage; portal remains at `/login`. Pages: Home, About (school & parish), Academics & Boarding, Admissions & Visit Days, Parish & Ministries, Events & Notices, Give, Contact. Illustrative demo content only, labelled as such; no fabricated founding dates, awards, staff, or testimonials. Anglican identity non-negotiable in tone. Links users are already signed in to the portal via "Portal login".
+
+THESIS: The school is one continuous act of light — chapel to classroom to duty; the category default (photo-collage hero + three "Why Choose Us" cards) and the cream-brochure rendition are refused outright.
+OWN-WORLD: cool whitewash ground (#f5f3ed), deep chapel ink (#1f2a44), timber walnut (#6b4a2b), morning gold used only as light (#d9a441), one stained-glass ruby (#8e2a3c) as the rare accent; beams, arches and joints drawn honestly; Georgia-class display voice in ink-black on whitewash, humanist system sans for body; the world stays crisp by holding full ink contrast and working parts — never fog, never haze.
+STORY: A parent lands, understands within seconds (whole child, small family, faith that is lived), books a visit in the booking form woven into the hero; deeper pages deepen the belief — outcomes, daily rhythm, admissions steps, giving. Every page ends anchored by the same visit invitation.
+FIRST VIEWPORT: Full-height nave — cool whitewash ground. Top nav: wordmark "SAINTS — All Saints Mushililie" left; links (About / Academics / Admissions / Parish / Give / Contact) center-right; "Portal login" button right. Under the arch, left column: kicker line in small caps; display headline in two lines ("Faith. Mind. Character. One school day, one family."); one-line proof in body sans; the visit booking form (name, phone, grade, preferred date) as the page's working part with a plain-gold submit ("Sign the visitor book — book a school visit"); below it the named promenade steps (Gate → Assembly courtyard → Chapel → Classrooms) as a numbered walk. Right column: the stained-glass school-day ribbon — one continuous vertical band of hour-labeled light shafts crossing colored pools landing in their own names (chapel, class, games, vespers); one shaft glows on load, then settles. Header never traps the offer: the form is complete in the first viewport.
+FORM: The Chapel in Morning Light, position 4 of the grounded list (not the top), seed: seed:abe13fdf9fa83430. Raised by six donations — the visitor book chrome (cyworld-minihompy-room), ghost cells for deliberate absence (signals-instruments-seven-segment-alarm-clock), numbered absence naming the missing (pop-culture-shelf-insert-card-numbered-series), zoom-the-campus hover labels (eboy-pixorama-metropolis), colored light obeying colored law (dream-surreal-impossible-worlds-gravity-rain-garden), one continuous ribbon with no cuts (paper-folds-pleats-deployable-orizuru-crane-sequence). FINISH: the run's exit condition, verbatim "unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance".
+
+Constraints: demo copy must be swappable without layout change; M-Pesa/phone conversion paths; English with light Kiswahili where natural; no external font or image requests (network blocked) — system stacks only; WCAG-conscious contrast; reduced-motion-safe. Visual authority for the world is this brief plus incumbent tokens; the portal (Operate surfaces) stays untouched. The portal chrome (PortalShell) must not wrap public pages.
+
+Not in scope: portal redesign, real content, SEO/OG deep work, analytics, backend for the enquiries (mailto/tel/WhatsApp links only), full CMS. Donated disciplines belong in implementation; direction contract not to be copied into source.
