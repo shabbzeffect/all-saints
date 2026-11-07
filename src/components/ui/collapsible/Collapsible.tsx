@@ -1,14 +1,18 @@
+"use client"
+
 import { ReactNode, useState } from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/config"
 
 export interface CollapsibleProps {
   defaultOpen?: boolean
   className?: string
+  children?: ReactNode
 }
 
 const Collapsible = ({
   defaultOpen = false,
   className,
+  children,
 }: CollapsibleProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 

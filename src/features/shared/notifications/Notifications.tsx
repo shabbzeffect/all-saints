@@ -1,388 +1,164 @@
-/* Shared Notifications - SaintsHub Platform
-Provides: System notifications with status filtering
-*/
+/* Notifications - SaintsHub Admin
+ * Outbound notification center: SMS, email, WhatsApp and in-app messages
+ */
+"use client"
+
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 
-interface Notification {
+interface NotificationRow {
   id: string
   title: string
   message: string
   type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
   channel: "EMAIL" | "SMS" | "WHATSAPP" | "IN_APP" | "PUSH"
   recipientType: "STAFF" | "PARENTS" | "STUDENTS" | "MEMBERS" | "ALL"
-  institutionId?: string
   status: "PENDING" | "SENT" | "DELIVERED" | "FAILED"
   sentAt?: string
-  deliveredAt?: string
   createdAt: string
-  metadata?: {
-    read?: boolean
-    clicked?: boolean
-  }
 }
 
-interface NotificationFilter {
-  status?: "PENDING" | "SENT" | "DELIVERED" | "FAILED"
-  channel?: "EMAIL" | "SMS" | "WHATSAPP" | "IN_APP" | "PUSH"
-  recipientType?: "STAFF" | "PARENTS" | "STUDENTS" | "MEMBERS" | "ALL"
-  type?: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
-  searchTerm?: string
+const TYPE_VARIANT: Record<NotificationRow["type"], "info" | "warning" | "success" | "destructive"> = {
+  INFO: "info",
+  WARNING: "warning",
+  SUCCESS: "success",
+  ERROR: "destructive",
+}
+
+const STATUS_VARIANT: Record<NotificationRow["status"], "warning" | "info" | "success" | "destructive"> = {
+  PENDING: "warning",
+  SENT: "info",
+  DELIVERED: "success",
+  FAILED: "destructive",
 }
 
 export function Notifications() {
-  const [filters, setFilters] = useState<NotificationFilter>({
-    status: "",
-    channel: "",
-    recipientType: "",
-    type: "",
-    searchTerm: "",
-  })
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const searchParams = useSearchParams()
+  const [status, setStatus] = useState("")
+  const [channel, setChannel] = useState("")
+  const [recipientType, setRecipientType] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const status = searchParams.get("status") || ""
-    const channel = searchParams.get("channel") || ""
-    const recipientType = searchParams.get("recipientType") || ""
-    const type = searchParams.get("type") || ""
-    setFilters({ status, channel, recipientType, type, searchTerm: searchParams.get("search") || "" })
-  }, [searchParams])
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (status) params.set("status", status)
+    if (channel) params.set("channel", channel)
+    if (recipientType) params.set("recipientType", recipientType)
+    if (searchTerm) params.set("search", searchTerm)
+    fetch(`/api/shared/notifications${params.toString() ? `?${params}` : ""}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => setNotifications(body?.data ?? []))
+      .catch(() => setNotifications([]))
+      .finally(() => setLoading(false))
+  }, [status, channel, recipientType, searchTerm])
 
-  const fetchNotifications = useCallback(async () => {
-    const response = await fetch(`/api/shared/notifications${searchParams.toString() ? `&${searchParams.toString()}` : ""}`, {
-      cache: "no-store",
-    })
-    const data = await response.json()
-    setNotifications(data.data || [])
-  }, [searchParams])
-
-  useEffect(() => {
-    fetchNotifications()
-  }, [fetchNotifications])
-
-  const filteredNotifications = notifications.filter((notification) => {
-    const matchesStatus = filters.status ? notification.status === filters.status : true
-    const matchesChannel = filters.channel ? notification.channel === filters.channel : true
-    const matchesRecipientType = filters.recipientType
-      ? notification.recipientType === filters.recipientType
-      : true
-    const matchesType = filters.type ? notification.type === filters.type : true
-    const matchesSearch =
-      filters.searchTerm === ""
-        ? true
-        : notification.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          notification.message.toLowerCase().includes(filters.searchTerm.toLowerCase())
-
-    return matchesStatus && matchesChannel && matchesRecipientType && matchesType && matchesSearch
-  })
-
-  const handleFilterChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const value = (e.target as HTMLInputElement | HTMLSelectElement).value
-      setFilters((prev) => ({
-        ...prev,
-        [e.target.name]: value,
-      }))
-    },
-    []
-  )
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setFilters((prev) => ({ ...prev, searchTerm: value }))
-    },
-    []
-  )
+  const failed = notifications.filter((n) => n.status === "FAILED").length
+  const pending = notifications.filter((n) => n.status === "PENDING").length
 
   return (
-    <div className="p-4 sm:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-purple dark:text-anglican-purple-100">
-          Notifications
-        </h1>
-        <p className="text-muted dark:text-muted-foreground mt-1">
-          System notifications & alerts
-        </p>
-      </header>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Notifications</h2>
+        <p className="text-sm text-muted-foreground">Messages sent to staff, parents and members</p>
+      </div>
 
-      {/* Filters */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Status</label>
-              <Select
-                onValueChange={handleFilterChange}
-                defaultValue=""
-                name="status"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="SENT">Sent</SelectItem>
-                  <SelectItem value="DELIVERED">Delivered</SelectItem>
-                  <SelectItem value="FAILED">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {(failed > 0 || pending > 0) && (
+        <div className="flex items-center gap-3 rounded-xl border border-anglican-gold-300 bg-anglican-gold-50 p-3 text-sm text-anglican-gold-900">
+          {pending > 0 && <span><strong>{pending}</strong> pending delivery</span>}
+          {failed > 0 && <span><strong>{failed}</strong> failed — check provider credentials</span>}
+        </div>
+      )}
 
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Channel</label>
-              <Select
-                onValueChange={handleFilterChange}
-                defaultValue=""
-                name="channel"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All channels" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All</SelectItem>
-                  <SelectItem value="EMAIL">Email</SelectItem>
-                  <SelectItem value="SMS">SMS</SelectItem>
-                  <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
-                  <SelectItem value="IN_APP">In-App</SelectItem>
-                  <SelectItem value="PUSH">Push</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Recipient Type</label>
-              <Select
-                onValueChange={handleFilterChange}
-                defaultValue=""
-                name="recipientType"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All recipient types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                  <SelectItem value="PARENTS">Parents</SelectItem>
-                  <SelectItem value="STUDENTS">Students</SelectItem>
-                  <SelectItem value="MEMBERS">Members</SelectItem>
-                  <SelectItem value="ALL">All</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Type</label>
-              <Select
-                onValueChange={handleFilterChange}
-                defaultValue=""
-                name="type"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All</SelectItem>
-                  <SelectItem value="INFO">Info</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="SUCCESS">Success</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Search</label>
-              <Input
-                placeholder="Search by title or message..."
-                onValueChange={handleSearchChange}
-                value={filters.searchTerm}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notifications Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>{notifications.length} Notifications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredNotifications.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-8">
-              No notifications found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableClassName>Title</TableClassName>
-                  <TableCell className="text-center">Type</TableCell>
-                  <TableCell className="text-center">Channel</TableCell>
-                  <TableCell className="text-center">Recipient</TableCell>
-                  <TableCell className="text-center">Status</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredNotifications.map((notification) => (
-                  <TableRow
-                    key={notification.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
-                    <TableCell>
-                      <div className="font-medium">{notification.title}</div>
-                      <div className="text-xs text-muted/60">{notification.channel} channel</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={notification.type === "INFO" ? "default" : notification.type === "WARNING" ? "secondary" : notification.type === "SUCCESS" ? "default" : "destructive"}
-                        size="sm"
-                      >
-                        {notification.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={notification.channel === "EMAIL" ? "default" : notification.channel === "SMS" ? "secondary" : notification.channel === "WHATSAPP" ? "default" : "default"}
-                        size="sm"
-                      >
-                        {notification.channel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={notification.status === "PENDING" ? "secondary" : notification.status === "SENT" ? "default" : notification.status === "DELIVERED" ? "default" : "destructive"}
-                        size="sm"
-                      >
-                        {notification.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-purple/60 hover:text-anglican-purple text-sm"
-                        aria="View notification"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create Notification Form */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Create Notification</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Title</label>
-              <Input name="title" className="w-full" />
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Message</label>
-              <Input
-                name="message"
-                className="w-full"
-                rows={3}
-                placeholder="Notification message content"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Type</label>
-              <Select defaultValue="INFO" name="type">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INFO">Info</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="SUCCESS">Success</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Channel</label>
-              <Select defaultValue="IN_APP" name="channel">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EMAIL">Email</SelectItem>
-                  <SelectItem value="SMS">SMS</SelectItem>
-                  <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
-                  <SelectItem value="IN_APP">In-App</SelectItem>
-                  <SelectItem value="PUSH">Push</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Recipient Type</label>
-              <Select defaultValue="ALL" name="recipientType">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select recipient type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                  <SelectItem value="PARENTS">Parents</SelectItem>
-                  <SelectItem value="STUDENTS">Students</SelectItem>
-                  <SelectItem value="MEMBERS">Members</SelectItem>
-                  <SelectItem value="ALL">All</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted/60 mb-1">Institution ID</label>
-              <Input
-                name="institutionId"
-                placeholder="inst-school-1 or inst-parish-1"
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <Button
-                type="submit"
-                disabled={false}
-                variant="primary"
-                className="w-full">
-                Send Notification
-              </Button>
-            </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              type="search"
+              placeholder="Search title or message…"
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              className="w-full sm:w-56"
+              aria-label="Search notifications"
+            />
+            <Select onValueChange={(e) => setChannel(e.target.value)} defaultValue="" name="channel" aria-label="Filter by channel">
+              <SelectTrigger><SelectValue placeholder="All channels" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All channels</SelectItem>
+                <SelectItem value="SMS">SMS</SelectItem>
+                <SelectItem value="EMAIL">Email</SelectItem>
+                <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+                <SelectItem value="IN_APP">In-App</SelectItem>
+                <SelectItem value="PUSH">Push</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={(e) => setRecipientType(e.target.value)} defaultValue="" name="recipientType" aria-label="Filter by audience">
+              <SelectTrigger><SelectValue placeholder="All audiences" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All audiences</SelectItem>
+                <SelectItem value="STAFF">Staff</SelectItem>
+                <SelectItem value="PARENTS">Parents</SelectItem>
+                <SelectItem value="STUDENTS">Students</SelectItem>
+                <SelectItem value="MEMBERS">Members</SelectItem>
+                <SelectItem value="ALL">Everyone</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={(e) => setStatus(e.target.value)} defaultValue="" name="status" aria-label="Filter by status">
+              <SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="SENT">Sent</SelectItem>
+                <SelectItem value="DELIVERED">Delivered</SelectItem>
+                <SelectItem value="FAILED">Failed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Channel</TableHead>
+                <TableHead className="text-center">Audience</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Sent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {notifications.map((n) => (
+                <TableRow key={n.id}>
+                  <TableCell>
+                    <div className="font-medium">{n.title}</div>
+                    <div className="line-clamp-1 text-xs text-muted-foreground">{n.message}</div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={TYPE_VARIANT[n.type] ?? "secondary"} size="sm">{n.type}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-xs">{n.channel}</TableCell>
+                  <TableCell className="text-center text-xs">{n.recipientType}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={STATUS_VARIANT[n.status] ?? "secondary"} size="sm">{n.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm">
+                    {n.sentAt ? new Date(n.sentAt).toLocaleString("en-KE") : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {!loading && notifications.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No notifications found.</p>
+          )}
+          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading notifications…</p>}
         </CardContent>
       </Card>
     </div>

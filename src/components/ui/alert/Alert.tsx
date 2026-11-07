@@ -43,9 +43,7 @@ export function AlertWithTitle({
   className?: string
 }) {
   return (
-    <div className={cn("rounded-md p-4 mb-4", {
-      "border-l-4": variant === "destructive",
-    })}>      
+    <div className={cn("rounded-md p-4 mb-4")}>      
       <p className="font-medium">{title}</p>
       <p className="mt-1 text-sm/60">{description}</p>
     </div>

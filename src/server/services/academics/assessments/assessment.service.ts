@@ -1,7 +1,7 @@
 /* Assessment Service - SaintsHub Academics
 Handles: Assessment creation, CBC rubric scoring, grade bands, analysis
 */
-import { prisma } from "../../db"
+import { prisma } from "@/server/db"
 import { AuditAction, AuditEvent } from "@prisma/client"
 import { formatCurrency } from "@/lib/config"
 import { createNotification, markNotificationSent } from "../../../auth/auth"

@@ -8,7 +8,7 @@ import React from "react"
 import { cn } from "@/lib/config"
 
 interface BadgeProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "link"
+  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "link" | "success" | "warning" | "info"
   size?: "default" | "sm" | "lg"
   asChild?: boolean
 }
@@ -18,6 +18,9 @@ const badgeVariants = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/90",
   secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
   destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  success: "bg-anglican-green-600 text-white hover:bg-anglican-green-700",
+  warning: "bg-anglican-gold-400 text-anglican-gold-900 hover:bg-anglican-gold-500",
+  info: "bg-anglican-blue-500 text-white hover:bg-anglican-blue-600",
   ghost: "hover:bg-accent hover:text-accent-foreground",
   link: "underline-offset-4 hover:underline text-anglican-blue/60 hover:text-anglican-blue dark:hover:text-anglican-blue-100",
 }

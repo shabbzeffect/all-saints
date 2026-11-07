@@ -1,167 +1,124 @@
-/* Parent Feature - SaintsHub Parent Portal
-Provides: Parent/guardian dashboard, fee payments, receipts, report cards
-*/
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { LoadingSpinner } from "@/components/ui/spinner"
-import { useState, useEffect } from "react"
+﻿/* ParentDashboard - SaintsHub Parent Portal
+ * Children overview, outstanding balances and quick actions
+ */
+"use client"
 
-interface StudentSummary {
-  id: string
-  admissionNumber: string
-  fullName: string
-  grade: string
-  class: string
-  attendancePercentage: number
-  feeBalance: number
-  isBoarding: boolean
-}
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { CreditCard, Receipt, FileText, Users, Wallet, GraduationCap } from "lucide-react"
+import type { StudentSummary } from "./sample-children"
 
 interface ParentDashboardProps {
-  children: StudentSummary[]
+  students: StudentSummary[]
   onNavigate: (path: string) => void
 }
 
-export function ParentDashboard({ children, onNavigate }: ParentDashboardProps) {
-  const [loading, setLoading] = useState(false)
-  const [feeSummary, setFeeSummary] = useState({ total: 0, paid: 0, outstanding: 0 })
+export function ParentDashboard({ students, onNavigate }: ParentDashboardProps) {
+  const totalBalance = students.reduce((sum, s) => sum + Math.max(s.feeBalance, 0), 0)
+  const avgAttendance =
+    students.length > 0
+      ? Math.round(students.reduce((sum, s) => sum + s.attendancePercentage, 0) / students.length)
+      : 0
+  const boardingCount = students.filter((s) => s.isBoarding).length
 
-  useEffect(() => {
-    // Calculate fee summary from children data
-    const total = children.reduce((sum, student) => sum + student.feeBalance, 0)
-    const paid = children.reduce(
-      (sum, student) => sum + Math.max(0, student.feeBalance - student.feeBalance),
-      0
-    )
-    const outstanding = children.reduce((sum, student) => sum + student.feeBalance, 0)
-    setFeeSummary({ total, paid, outstanding })
-  }, [children])
+  const metrics = [
+    { label: "Children Enrolled", value: students.length, icon: Users },
+    { label: "Outstanding Balance", value: `KSh ${totalBalance.toLocaleString()}`, icon: Wallet },
+    { label: "Average Attendance", value: `${avgAttendance}%`, icon: GraduationCap },
+    { label: "Boarding", value: boardingCount, icon: Users },
+  ]
+
+  const quickActions = [
+    { title: "Pay Fees", description: "M-Pesa or bank transfer", href: "/parent/pay-fees", icon: CreditCard },
+    { title: "Receipts", description: "Download payment receipts", href: "/parent/receipts", icon: Receipt },
+    { title: "Report Cards", description: "View and acknowledge reports", href: "/parent/report-cards", icon: FileText },
+  ]
 
   return (
-    <div className="p-4 sm:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
-          Parent Portal
-        </h1>
-        <p className="text-muted dark:text-muted-foreground mt-1">
-          SaintsHub School - Fee Management & Student Records
-        </p>
-      </header>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Parent Portal</h2>
+        <p className="text-sm text-muted-foreground">Fee management, attendance and academic records for your children</p>
+      </div>
 
-      {/* Children Overview Section */}
-      <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm dark:bg-card-dark border border-border-dark/30">
-        <h2 className="font-semibold text-anglican-blue dark:text-anglican-blue-100 mb-4">
-          {children.length} Child(ren)
-        </h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableCell className="w-32">Admission No.</TableCell>
-              <TableCell>Student</TableCell>
-              <TableCell className="text-right">Grade</TableCell>
-              <TableCell className="text-right">Attendance</TableCell>
-              <TableCell className="text-right">Fee Balance</TableCell>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {children.map((student) => (
-              <TableRow key={student.id} className="hover:bg-angle/5 dark:hover:bg-angle/80">
-                <TableCell>{student.admissionNumber}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{student.fullName}</div>
-                  <div className="text-sm text-muted/60">Grade {student.grade}</div>
-                </TableCell>
-                <TableCell className="text-center">{student.grade}</TableCell>
-                <TableCell className="text-center">
-                  <div className="font-medium">{student.attendancePercentage}%</div>
-                  <div className="text-xs text-muted/60">of classes</div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {student.feeBalance > 0 ? (
-                    <span className="text-destructive">
-                      KSh {student.feeBalance.toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="text-success">Paid</span>
-                  )}
-                </TableCell>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+                <p className="mt-1 text-2xl font-bold">{metric.value}</p>
+              </div>
+              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
+                <metric.icon className="h-5 w-5" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {quickActions.map((action) => (
+          <button
+            key={action.href}
+            onClick={() => onNavigate(action.href)}
+            className="group rounded-xl border border-border-dark/30 bg-card p-5 text-left transition-colors hover:border-anglican-blue-400 hover:bg-anglican-blue-50/40"
+          >
+            <action.icon className="h-6 w-6 text-anglican-blue-700 transition-transform group-hover:-translate-y-0.5" />
+            <p className="mt-3 font-semibold">{action.title}</p>
+            <p className="text-sm text-muted-foreground">{action.description}</p>
+          </button>
+        ))}
+      </div>
+
+      <Card className="overflow-x-auto">
+        <CardHeader>
+          <CardTitle>My Children</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Admission No.</TableHead>
+                <TableHead>Student</TableHead>
+                <TableHead className="text-center">Grade</TableHead>
+                <TableHead className="text-center">Attendance</TableHead>
+                <TableHead className="text-center">Residence</TableHead>
+                <TableHead className="text-right">Fee Balance</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {/* Fee Summary Bar */}
-        <div className="mt-4 p-3 rounded bg-angle/5 dark:bg-angle/20">
-          <div className="flex justify-between items-center mb-2">
-            <span>Outstanding Balance</span>
-            <span className="font-medium text-destructive">
-              KSh {feeSummary.outstanding.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="default">{feeSummary.paid === 0 ? "0" : feeSummary.paid}</Badge>
-            <Badge variant="secondary">{feeSummary.total}</Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={() => onNavigate("/parent/pay-fees")}
-          className="justify-center">
-          <span className="flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 010-2 1 1 0 010 2zm1.66-5.05a1 1 0 010 1.7 1 1 0 01-1.66 0L10 7.76 6.34 4.05a1 1 0 111.33-1.7zM12 8a4 4 0 110 8 4 4 0 010-8z" />
-            </svg>
-            Pay Fees
-          </span>
-        </Button>
-
-        <Button
-          variant="default"
-          size="lg"
-          onClick={() => onNavigate("/parent/receipts")}
-          className="justify-center">
-          <span className="flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M12 1a3 3 0 00-3 3v6a3 3 0 006 0V4a3 3 0 00-3-3zm6 13a3 3 0 11-6 0 3 3 0 016 0zM5 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V8z" />
-            </svg>
-            View Receipts
-          </span>
-        </Button>
-
-        <Button
-          variant="default"
-          size="lg"
-          onClick={() => onNavigate("/parent/report-cards")}
-          className="justify-center">
-          <span className="flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M5 3a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2zm0 3a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V8a2 2 0 012-2zm9 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zm-5 7a2 2 0 01-2-2h-2a2 2 0 01-2-2v-2a2 2 0 012-2h2a2 2 0 012 2v2zm2-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            Report Cards
-          </span>
-        </Button>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {students.map((student) => (
+                <TableRow key={student.id}>
+                  <TableCell className="font-mono text-xs">{student.admissionNumber}</TableCell>
+                  <TableCell className="font-medium">{student.fullName}</TableCell>
+                  <TableCell className="text-center">{student.grade}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={student.attendancePercentage >= 80 ? "success" : "warning"} size="sm">
+                      {student.attendancePercentage}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={student.isBoarding ? "primary" : "secondary"} size="sm">
+                      {student.isBoarding ? "Boarding" : "Day"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {student.feeBalance > 0 ? (
+                      <span className="text-destructive">KSh {student.feeBalance.toLocaleString()}</span>
+                    ) : (
+                      <span className="text-anglican-green-700">Paid</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
+

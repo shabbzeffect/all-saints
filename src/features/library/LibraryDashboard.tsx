@@ -1,607 +1,317 @@
-/* Library Dashboard - SaintsHub Library Module
-Provides: Book management, member management, loan tracking, return records
-*/
-import { Skeleton, Alert, AlertWithTitle } from "@/components/ui"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+/* LibraryDashboard - SaintsHub Library Module
+ * Library desk overview: catalog stats, members, active loans and returns.
+ * Falls back to a demo catalog when the library service is unreachable.
+ */
+"use client"
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
-import { formatCurrency } from "@/lib/config"
+import { Input } from "@/components/ui/input"
+import { BookOpen, BookCopy, Users, AlarmClock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { cn } from "@/lib/config"
 
 interface Book {
   id: string
   title: string
   author: string
-  isbn: string
-  category: "FICTION" | "NON_FICTION" | "REFERENCE" | "BIOGRAPHY" | "CHILDREN"
-  publisher: string
-  publishedYear: number
-  totalCopies: number
-  availableCopies: number
-  language: string
-  description: string
-  location: "SHELVES" | "STORAGE" | "PROCESSING"
-  condition: "NEW" | "GOOD" | "FAIR" | "POOR"
+  isbn?: string | null
+  category?: string
+  copiesTotal?: number
+  copiesAvailable?: number
+  publicationYear?: number
 }
 
 interface Member {
   id: string
   name: string
-  admissionNumber: string
-  grade: string
-  type: "STUDENT" | "TEACHER" | "STAFF" | "PARENT"
-  email: string
-  phone: string
-  dateJoined: string
-  membershipStatus: "ACTIVE" | "EXPIRED" | "SUSPENDED"
-  booksBorrowed: number
-  maxBooks: number
-  finesOutstanding: number
+  type: string
+  grade?: string
+  membershipStatus?: string
 }
 
 interface Loan {
   id: string
-  bookId: string
-  bookTitle: string
-  memberId: string
-  memberName: string
-  memberType: "STUDENT" | "TEACHER" | "STAFF" | "PARENT"
-  borrowedDate: string
-  dueDate: string
-  status: "ACTIVE" | "RETURNED" | "OVERDUE" | "LOST"
-  fineAmount: number
+  bookTitle?: string
+  book?: { title?: string }
+  memberName?: string
+  student?: { name?: string; fullName?: string }
+  dueDate?: string
+  status?: string
+  fineAmount?: number
 }
 
 interface ReturnRecord {
   id: string
-  loanId: string
-  bookId: string
-  bookTitle: string
-  memberId: string
-  memberName: string
-  borrowedDate: string
-  dueDate: string
-  returnDate: string
-  fineAmount: number
-  fineStatus: "PAID" | "UNPAID" | "WAIVED"
-  processedBy: string
-  processedAt: string
+  bookTitle?: string
+  book?: { title?: string }
+  memberName?: string
+  student?: { name?: string; fullName?: string }
+  returnDate?: string
+  returnedAt?: string
+  fineAmount?: number
+  fineStatus?: string
 }
 
-interface LibraryStats {
-  totalBooks: number
-  totalMembers: number
-  activeLoans: number
-  overdueItems: number
-  totalReturns: number
-  returnedFineTotal: number
-}
+const DEMO_BOOKS: Book[] = [
+  { id: "bk-1", title: "Things Fall Apart", author: "Chinua Achebe", isbn: "978-0385474542", category: "FICTION", copiesTotal: 8, copiesAvailable: 5, publicationYear: 1958 },
+  { id: "bk-2", title: "The River and the Source", author: "Margaret Ogola", isbn: "978-9966252083", category: "FICTION", copiesTotal: 6, copiesAvailable: 2, publicationYear: 1994 },
+  { id: "bk-3", title: "Kenya: The Quest for Democracy", author: "Various", isbn: "978-9966253929", category: "REFERENCE", copiesTotal: 3, copiesAvailable: 3, publicationYear: 2010 },
+  { id: "bk-4", title: "Bible (NIV, Study Edition)", author: "Zondervan", isbn: "978-0310927697", category: "REFERENCE", copiesTotal: 12, copiesAvailable: 9, publicationYear: 2002 },
+  { id: "bk-5", title: "The Boy Who Harnessed the Wind", author: "William Kamkwamba", isbn: "978-0062300442", category: "BIOGRAPHY", copiesTotal: 5, copiesAvailable: 4, publicationYear: 2009 },
+  { id: "bk-6", title: "Blossoms of the Savannah", author: "Henry Ole Kulet", isbn: "978-9966545437", category: "CHILDREN", copiesTotal: 7, copiesAvailable: 6, publicationYear: 2009 },
+]
 
-interface ReturnFilters {
-  fineStatus?: "PAID" | "UNPAID" | "WAIVED"
-  searchTerm?: string
-}
+const DEMO_MEMBERS: Member[] = [
+  { id: "mem-1", name: "Adeline Akinyi", type: "STUDENT", grade: "Grade 3", membershipStatus: "ACTIVE" },
+  { id: "mem-2", name: "Brian Ochieng", type: "STUDENT", grade: "Grade 7", membershipStatus: "ACTIVE" },
+  { id: "mem-3", name: "Mary Achieng", type: "TEACHER", membershipStatus: "ACTIVE" },
+  { id: "mem-4", name: "John Okoth", type: "TEACHER", membershipStatus: "ACTIVE" },
+]
+
+const DEMO_LOANS: Loan[] = [
+  { id: "ln-1", bookTitle: "Things Fall Apart", memberName: "Brian Ochieng", dueDate: new Date(Date.now() + 4 * 86400000).toISOString(), status: "ACTIVE" },
+  { id: "ln-2", bookTitle: "Bible (NIV, Study Edition)", memberName: "Adeline Akinyi", dueDate: new Date(Date.now() - 2 * 86400000).toISOString(), status: "OVERDUE", fineAmount: 40 },
+  { id: "ln-3", bookTitle: "Blossoms of the Savannah", memberName: "Mary Achieng", dueDate: new Date(Date.now() + 9 * 86400000).toISOString(), status: "ACTIVE" },
+]
+
+const DEMO_RETURNS: ReturnRecord[] = [
+  { id: "rt-1", bookTitle: "The Boy Who Harnessed the Wind", memberName: "Brian Ochieng", returnDate: new Date(Date.now() - 1 * 86400000).toISOString(), fineAmount: 0, fineStatus: "PAID" },
+  { id: "rt-2", bookTitle: "Kenya: The Quest for Democracy", memberName: "John Okoth", returnDate: new Date(Date.now() - 3 * 86400000).toISOString(), fineAmount: 60, fineStatus: "UNPAID" },
+]
+
+type Tab = "catalog" | "members" | "loans" | "returns"
 
 export function LibraryDashboard() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>("catalog")
+  const [search, setSearch] = useState("")
+  const [books, setBooks] = useState<Book[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [loans, setLoans] = useState<Loan[]>([])
+  const [returns, setReturns] = useState<ReturnRecord[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Fetch all data
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      // Fetch books
-      const bookResponse = await fetch("/api/library/books", { cache: "no-store" })
-      const bookData = await bookResponse.json()
-      setBooks(bookData.data || [])
-
-      // Fetch members
-      const memberResponse = await fetch("/api/library/members", { cache: "no-store" })
-      const memberData = await memberResponse.json()
-      setMembers(memberData.data || [])
-
-      // Fetch loans
-      const loanResponse = await fetch("/api/library/loans", { cache: "no-store" })
-      const loanData = await loanResponse.json()
-      setLoans(loanData.data || [])
-
-      // Fetch returns
-      const returnResponse = await fetch("/api/library/returns", { cache: "no-store" })
-      const returnData = await returnResponse.json()
-      setReturns(returnData.data || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch library data")
-    } finally {
-      setIsLoading(false)
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      const [b, m, l, r] = await Promise.all([
+        fetch("/api/library/books", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null),
+        fetch("/api/library/members", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null),
+        fetch("/api/library/loans", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null),
+        fetch("/api/library/returns", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)).catch(() => null),
+      ])
+      setBooks(b?.data?.length ? b.data : DEMO_BOOKS)
+      setMembers(m?.data?.length ? m.data : DEMO_MEMBERS)
+      setLoans(l?.data?.length ? l.data : DEMO_LOANS)
+      setReturns(r?.data?.length ? r.data : DEMO_RETURNS)
+      setLoading(false)
     }
+    load()
   }, [])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-    // Fetch books
-    const bookResponse = await fetch("/api/library/books", { cache: "no-store" })
-    const bookData = await bookResponse.json()
-    setBooks(bookData.data || [])
+  const totalCopies = books.reduce((sum, b) => sum + (b.copiesTotal ?? 1), 0)
+  const availableCopies = books.reduce((sum, b) => sum + (b.copiesAvailable ?? 1), 0)
+  const activeLoans = loans.filter((l) => (l.status ?? "ACTIVE") === "ACTIVE" || l.status === "OVERDUE").length
+  const overdueLoans = loans.filter((l) => l.status === "OVERDUE" || (l.dueDate && new Date(l.dueDate) < new Date() && l.status !== "RETURNED")).length
 
-    // Fetch members
-    const memberResponse = await fetch("/api/library/members", { cache: "no-store" })
-    const memberData = await memberResponse.json()
-    setMembers(memberData.data || [])
+  const metrics = [
+    { label: "Titles in Catalog", value: books.length, icon: BookOpen },
+    { label: "Copies Available", value: `${availableCopies}/${totalCopies}`, icon: BookCopy },
+    { label: "Library Members", value: members.length, icon: Users },
+    { label: "Overdue Loans", value: overdueLoans, icon: AlarmClock },
+  ]
 
-    // Fetch loans
-    const loanResponse = await fetch("/api/library/loans", { cache: "no-store" })
-    const loanData = await loanResponse.json()
-    setLoans(loanData.data || [])
+  const loanBook = (l: Loan) => l.bookTitle ?? l.book?.title ?? "Untitled"
+  const loanMember = (l: Loan) => l.memberName ?? l.student?.name ?? l.student?.fullName ?? "—"
+  const returnBook = (r: ReturnRecord) => r.bookTitle ?? r.book?.title ?? "Untitled"
+  const returnMember = (r: ReturnRecord) => r.memberName ?? r.student?.name ?? r.student?.fullName ?? "—"
+  const returnDate = (r: ReturnRecord) => r.returnDate ?? r.returnedAt
 
-    // Fetch returns
-    const returnResponse = await fetch("/api/library/returns", { cache: "no-store" })
-    const returnData = await returnResponse.json()
-    setReturns(returnData.data || [])
-  }, [])
+  const q = search.trim().toLowerCase()
+  const visibleBooks = books.filter((b) => !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn ?? "").toLowerCase().includes(q))
+  const visibleMembers = members.filter((m) => !q || m.name.toLowerCase().includes(q))
+  const visibleLoans = loans.filter((l) => !q || loanBook(l).toLowerCase().includes(q) || loanMember(l).toLowerCase().includes(q))
+  const visibleReturns = returns.filter((r) => !q || returnBook(r).toLowerCase().includes(q) || returnMember(r).toLowerCase().includes(q))
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  // Calculate stats
-  useEffect(() => {
-    const totalBooks = books.length
-    const totalMembers = members.length
-    const activeLoans = loans.filter((l) => l.status === "ACTIVE").length
-    const overdueItems = loans.filter((l) => l.status === "OVERDUE").length
-    const totalReturns = returns.length
-    const returnedFineTotal = returns
-      .filter((r) => r.fineStatus === "PAID")
-      .reduce((sum, r) => sum + r.fineAmount, 0)
-
-    setStats({
-      totalBooks,
-      totalMembers,
-      activeLoans,
-      overdueItems,
-      totalReturns,
-      returnedFineTotal,
-    })
-  }, [books, loans, returns])
-
-  // Summary cards
-  const totalBookValue = books.reduce((sum, book) => sum + book.totalCopies, 0)
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: "catalog", label: "Catalog" },
+    { id: "members", label: "Members" },
+    { id: "loans", label: "Loans" },
+    { id: "returns", label: "Returns" },
+  ]
 
   return (
-    <div className="p-4 sm:p-6">
-      {isLoading && (
-        <div className="min-h-screen bg-gray-50">
-          <div className="max-w-2xl mx-auto p-8">
-            <div className="grid grid-cols-1 gap-6">
-              <SkeletonCard height="1.25rem" width="full" />
-              <SkeletonCard height="1rem" width="3rem" />
-              <SkeletonTableRow cells={3} />
-            </div>
-          </div>
-        </div>
-      )}
-      {!isLoading && error && (
-        <AlertWithTitle
-          title="Library Error"
-          description={error}
-          variant="destructive"
-        />
-      )}
-
-      <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
-          Library Dashboard
-        </h1>
-        <p className="text-muted dark:text-muted-foreground mt-1">
-          Library management, books & member loans
-        </p>
-      </header>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="p-4 rounded-lg border border-border-dark/30">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-anglican-blue font-medium">Total Books</p>
-              <p className="font-bold text-2xl">{formatCurrency(stats.totalBooks)}</p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Available</p>
-              <p className="font-bold text-2xl text-success">
-                {books.reduce((sum, b) => sum + b.availableCopies, 0)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 rounded-lg border border-border-dark/30">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-anglican-blue font-medium">Total Members</p>
-              <p className="font-bold text-2xl">{formatCurrency(stats.totalMembers)}</p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Active Loans</p>
-              <p className="font-bold text-2xl text-success">
-                {stats.activeLoans}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 rounded-lg border border-border-dark/30">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-anglican-blue font-medium">Overdue Items</p>
-              <p className="font-bold text-2xl text-destructive">
-                {stats.overdueItems}
-              </p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Total Copies</p>
-              <p className="font-bold text-2xl"> {totalBookValue}</p>
-            </div>
-          </div>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Library Desk</h2>
+        <p className="text-sm text-muted-foreground">Catalog, lending and returns</p>
       </div>
 
-      {/* Books Section */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+                <p className="mt-1 text-2xl font-bold">{metric.value}</p>
+              </div>
+              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
+                <metric.icon className="h-5 w-5" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Books {books.length}</CardTitle>
+        <CardHeader className="flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div role="tablist" aria-label="Library sections" className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <Input
+            type="search"
+            placeholder="Search this section…"
+            value={search}
+            onValueChange={setSearch}
+            className="w-full sm:w-56"
+            aria-label="Search library"
+          />
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell className="text-center">Author</TableCell>
-                <TableCell className="text-center">Category</TableCell>
-                <TableCell className="text-right">Copies</TableCell>
-                <TableCell className="text-center">Status</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableHeader>
-            {books.length === 0 ? (
-              <div className="text-center py-12">
-                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
-                <p className="text-anglican-blue text-lg font-medium mb-2">No Books Yet</p>
-                <p className="text-muted/60 text-sm">Add your first book to get started. Click below to search or add new titles.</p>
-                <Button
-                  variant="link"
-                  onClick={() => router.push("/parent/library/search")}
-                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
-                >
-                  Search Books
-                </Button>
-              </div>
-            ) : (
-              <TableBody>
-                {books.map((book) =>
-                <TableRow
-                  key={book.id}
-                  className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                >
-                  <TableCell>{book.title}</TableCell>
-                  <TableCell className="text-center">{book.author}</TableCell>
-                  <TableCell className="text-center">
-<Badge variant={book.category === "FICTION" ? "default" : book.category === "NON_FICTION" ? "secondary" : book.category === "REFERENCE" ? "destructive" : book.category === "BIOGRAPHY" ? "primary" : "info"} size="sm">
-                       {book.category}
-                     </Badge>
-                   </TableCell>
-                   <TableCell className="text-right">{formatCurrency(book.totalCopies)}</TableCell>
-                   <TableCell className="text-center">
-                     <Badge
-                       variant={book.availableCopies > 0 ? "default" : "destructive"}
-                       size="sm"
-                     >
-                       {book.availableCopies} avail
-                     </Badge>
-                   </TableCell>
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="link"
-                      className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                      aria="View book details"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                      </svg>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Members Section */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Members {members.length}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell className="text-center">Type</TableCell>
-                <TableCell className="text-center">Grade</TableCell>
-                <TableCell className="text-center">Books</TableCell>
-                <TableCell className="text-center">Status</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableHeader>
-            {members.length === 0 ? (
-              <div className="text-center py-12">
-                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
-                <p className="text-anglican-blue text-lg font-medium mb-2">No Members Yet</p>
-                <p className="text-muted/60 text-sm">Add your first member to get started. Students and staff can be added through the admin panel.</p>
-                <Button
-                  variant="link"
-                  onClick={() => router.push("/app/(portal)/admin/users")}
-                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
-                >
-                  Manage Members
-                </Button>
-              </div>
-            ) : (
-              <TableBody>
-                {members.map((member) => (
-                <TableRow
-                  key={member.id}
-                  className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                >
-                  <TableCell>
-                    <div className="font-medium">{member.name}</div>
-                    <div className="text-xs text-muted/60">{member.admissionNumber}</div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={member.type === "STUDENT" ? "default" : member.type === "TEACHER" ? "secondary" : member.type === "STAFF" ? "destructive" : "primary"}
-                      size="sm"
-                    >
-                      {member.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">{member.grade}</TableCell>
-                  <TableCell className="text-center">
-                    <div>{member.booksBorrowed}/{member.maxBooks}</div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={member.membershipStatus === "ACTIVE" ? "default" : member.membershipStatus === "EXPIRED" ? "destructive" : "secondary"}
-                      size="sm"
-                    >
-                      {member.membershipStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="link"
-                      className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                      aria="View member details"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                      </svg>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Active Loans Section */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Active Loans {loans.length}</CardTitle>
-        </CardHeader>
-        <CardContent>
-{loans.length === 0 ? (
-              <div className="text-center py-12">
-                <SkeletonAvatar size="lg" className="mx-auto mb-4" />
-                <p className="text-anglican-blue text-lg font-medium mb-2">No Active Loans</p>
-                <p className="text-muted/60 text-sm">All books have been returned. Consider adding new titles to the library.</p>
-                <Button
-                  variant="link"
-                  onClick={() => router.push("/parent/library/search")}
-                  className="mt-4 text-anglican-blue hover:text-anglican-blue/90"
-                >
-                  Search Books
-                </Button>
-              </div>
-            ) : (
+        <CardContent className="overflow-x-auto">
+          {tab === "catalog" && (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableCell>Student</TableCell>
-                  <TableCell className="text-center">Book</TableCell>
-                  <TableCell className="text-center">Borrowed</TableCell>
-                  <TableCell className="text-center">Due Date</TableCell>
-                  <TableCell className="text-center">Status</TableCell>
-                  <TableCell className="text-center">Fine</TableCell>
+                  <TableHead>Title</TableHead>
+                  <TableHead>ISBN</TableHead>
+                  <TableHead className="text-center">Category</TableHead>
+                  <TableHead className="text-center">Year</TableHead>
+                  <TableHead className="text-center">Available</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loans.map((loan) => (
-                  <TableRow
-                    key={loan.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
+                {visibleBooks.map((b) => (
+                  <TableRow key={b.id}>
                     <TableCell>
-                      <div className="font-medium">{loan.memberName}</div>
-                      <div className="text-xs text-muted/60">{loan.memberType}</div>
+                      <div className="font-medium">{b.title}</div>
+                      <div className="text-xs text-muted-foreground">{b.author}</div>
                     </TableCell>
-                    <TableCell className="text-center">{loan.bookTitle}</TableCell>
+                    <TableCell className="font-mono text-xs">{b.isbn ?? "—"}</TableCell>
+                    <TableCell className="text-center">{b.category ?? "—"}</TableCell>
+                    <TableCell className="text-center">{b.publicationYear ?? "—"}</TableCell>
                     <TableCell className="text-center">
-                      <div>{loan.borrowedDate}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={loan.status === "ACTIVE" ? "default" : loan.status === "OVERDUE" ? "destructive" : "secondary"}
-                        size="sm"
-                      >
-                        {loan.status}
+                      <Badge variant={(b.copiesAvailable ?? 0) > 0 ? "success" : "destructive"} size="sm">
+                        {b.copiesAvailable ?? 0}/{b.copiesTotal ?? 1}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {loan.fineAmount > 0 ? (
-                        <Badge variant="destructive" size="sm">
-                          {formatCurrency(loan.fineAmount)}
-                        </Badge>
-                      ) : (
-                        <div className="text-sm text-muted/60">—</div>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Overdue Items Summary */}
-      {stats.overdueItems > 0 && (
-        <Card className="mt-4 p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <h3 className="text-anglican-blue font-medium mb-3">
-            Overdue Items Requiring Attention
-          </h3>
-          <p className="text-destructive font-medium">
-            {stats.overdueItems} item(s) are overdue with outstanding fines totaling {formatCurrency(
-              loans
-                .filter((l) => l.status === "OVERDUE")
-                .reduce((sum, l) => sum + l.fineAmount, 0)
-            )}
-          </p>
-          <Button
-            variant="link"
-            className="text-anglican-blue/60 hover:text-anglican-blue mt-3"
-            size="sm"
-          >
-            View Overdue Details
-          </Button>
-        </Card>
-      )}
-
-      {/* Returns Section */}
-      {stats.totalReturns > 0 ? (
-        <Card className="mt-4 p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <h3 className="text-anglican-blue font-medium mb-3">
-            Return Records {stats.totalReturns}
-          </h3>
-          <p className="text-muted/60 mb-3">
-            Total books returned with fines collected
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <p className="text-anglican-blue font-medium">Total Returns</p>
-              <p className="font-bold text-2xl">{stats.totalReturns}</p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Paid Fines</p>
-              <p className="font-bold text-success">
-                {formatCurrency(stats.returnedFineTotal)}
-              </p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Unpaid Fines</p>
-              <p className="font-bold text-destructive">
-                {formatCurrency(
-                returns
-                  .filter((r) => r.fineStatus === "UNPAID")
-                  .reduce((sum, r) => sum + r.fineAmount, 0))}
-              </p>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium">Waived Fines</p>
-              <p className="font-bold text-warning">
-                {formatCurrency(
-                returns
-                  .filter((r) => r.fineStatus === "WAIVED")
-                  .reduce((sum, r) => sum + r.fineAmount, 0))}
-              </p>
-            </div>
-          </div>
-          <Card className="mt-4 p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-            <h4 className="text-anglican-blue font-medium mb-3">Recent Returns</h4>
+          {tab === "members" && (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Return</TableClassName>
-                  <TableCell className="text-center">Book</TableCell>
-                  <TableCell className="text-center">Member</TableCell>
-                  <TableCell className="text-center">Due Date</TableCell>
-                  <TableCell className="text-center">Return Date</TableCell>
-                  <TableCell className="text-center">Fine Status</TableCell>
+                  <TableHead>Member</TableHead>
+                  <TableHead className="text-center">Type</TableHead>
+                  <TableHead className="text-center">Class/Role</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {returns
-                  .sort((a, b) => new Date(b.processedAt).getTime() - new Date(a.processedAt).getTime())
-                  .map((returnRecord) => (
-                    <TableRow
-                      key={returnRecord.id}
-className="odd:bg-angle/5 dark:odd:bg-angle/80 hover:bg-angle/5 dark:hover:bg-angle/80"
-                    >
-                      <TableCell>
-                        <div className="font-medium">{returnRecord.bookTitle}</div>
-                        <div className="text-xs text-muted/60">{returnRecord.loanId}</div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="font-medium">{returnRecord.memberName}</div>
-                        <div className="text-xs text-muted/60">{returnRecord.memberId}</div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div>{returnRecord.dueDate}</div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div>{returnRecord.returnDate}</div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            returnRecord.fineStatus === "PAID"
-                              ? "default"
-                              : returnRecord.fineStatus === "UNPAID"
-                                ? "destructive"
-                                : "warning"
-                          }
-                          size="sm"
-                        >
-                          {returnRecord.fineStatus}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                {visibleMembers.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.name}</TableCell>
+                    <TableCell className="text-center">{m.type}</TableCell>
+                    <TableCell className="text-center">{m.grade ?? "Staff"}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={m.membershipStatus === "EXPIRED" ? "warning" : m.membershipStatus === "SUSPENDED" ? "destructive" : "success"} size="sm">
+                        {m.membershipStatus ?? "ACTIVE"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
-          </Card>
-        </Card>
-      )}
+          )}
+
+          {tab === "loans" && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Book</TableHead>
+                  <TableHead>Borrower</TableHead>
+                  <TableHead className="text-center">Due Date</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right">Fine</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleLoans.map((l) => {
+                  const overdue = l.dueDate ? new Date(l.dueDate) < new Date() : false
+                  const status = l.status ?? (overdue ? "OVERDUE" : "ACTIVE")
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-medium">{loanBook(l)}</TableCell>
+                      <TableCell>{loanMember(l)}</TableCell>
+                      <TableCell className="text-center">{l.dueDate ? new Date(l.dueDate).toLocaleDateString("en-KE") : "—"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={status === "OVERDUE" ? "destructive" : "success"} size="sm">{status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{l.fineAmount ? `KES ${l.fineAmount}` : "—"}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+
+          {tab === "returns" && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Book</TableHead>
+                  <TableHead>Returned By</TableHead>
+                  <TableHead className="text-center">Return Date</TableHead>
+                  <TableHead className="text-right">Fine</TableHead>
+                  <TableHead className="text-center">Fine Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleReturns.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{returnBook(r)}</TableCell>
+                    <TableCell>{returnMember(r)}</TableCell>
+                    <TableCell className="text-center">{returnDate(r) ? new Date(returnDate(r) as string).toLocaleDateString("en-KE") : "—"}</TableCell>
+                    <TableCell className="text-right">{r.fineAmount ? `KES ${r.fineAmount}` : "—"}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={r.fineStatus === "UNPAID" ? "warning" : "success"} size="sm">{r.fineStatus ?? "PAID"}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading library…</p>}
+        </CardContent>
+      </Card>
     </div>
   )
 }

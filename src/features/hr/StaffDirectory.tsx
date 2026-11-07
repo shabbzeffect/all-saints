@@ -1,132 +1,133 @@
-/* eslint-disable react/prop-types */
-/* HR Staff Directory - SaintsHub */
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+/* StaffDirectory - SaintsHub HR Module
+ * Searchable staff directory with roles, employment types and status
+ */
+"use client"
+
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { UseCase } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react"
 
-interface StaffMember {
+export interface DirectoryStaffMember {
   id: string
-  user: { id: string; email: string; name: string; phone: string }
-  role: { key: string; name: string }
-  employmentType: { key: string; name: string }
-  dateOfJoining: Date
+  name: string
+  email: string
   phone: string
-  address?: string
-  status: string
-  leaveBalance?: { annual: number; sick: number; pending: number }
+  role: string
+  employmentType: "PERMANENT" | "CONTRACT" | "DAILY"
+  dateOfJoining: string
+  status: "ACTIVE" | "ON_LEAVE" | "TERMINATED"
 }
 
-interface StaffDirectoryProps {
-  staff: StaffMember[]
-  onView: (staffId: string) => void
+/* Demo roster (until the HRIS is connected) */
+export const DEMO_STAFF: DirectoryStaffMember[] = [
+  { id: "STF-001", name: "Mary Achieng", email: "mary.achieng@saintshub.test", phone: "+254 712 345 001", role: "Senior Teacher — Mathematics", employmentType: "PERMANENT", dateOfJoining: "2019-01-14", status: "ACTIVE" },
+  { id: "STF-002", name: "John Okoth", email: "john.okoth@saintshub.test", phone: "+254 712 345 002", role: "Teacher — English", employmentType: "PERMANENT", dateOfJoining: "2021-05-03", status: "ACTIVE" },
+  { id: "STF-003", name: "Jane Akinyi", email: "jane.akinyi@saintshub.test", phone: "+254 712 345 003", role: "Bursar", employmentType: "CONTRACT", dateOfJoining: "2022-08-22", status: "ON_LEAVE" },
+  { id: "STF-004", name: "Peter Mwangi", email: "peter.mwangi@saintshub.test", phone: "+254 712 345 004", role: "Science Teacher", employmentType: "PERMANENT", dateOfJoining: "2017-09-01", status: "ACTIVE" },
+  { id: "STF-005", name: "Grace Wanjiru", email: "grace.wanjiru@saintshub.test", phone: "+254 712 345 005", role: "Administrative Assistant", employmentType: "DAILY", dateOfJoining: "2024-02-12", status: "ACTIVE" },
+  { id: "STF-006", name: "David Kiptoo", email: "david.kiptoo@saintshub.test", phone: "+254 712 345 006", role: "Teacher — Kiswahili", employmentType: "CONTRACT", dateOfJoining: "2023-01-16", status: "TERMINATED" },
+]
+
+const STATUS_VARIANT: Record<DirectoryStaffMember["status"], "success" | "warning" | "destructive"> = {
+  ACTIVE: "success",
+  ON_LEAVE: "warning",
+  TERMINATED: "destructive",
 }
 
-export function StaffDirectory({ staff, onView }: StaffDirectoryProps) {
+export function StaffDirectory() {
   const [search, setSearch] = useState("")
+  const [employmentType, setEmploymentType] = useState("")
+  const [status, setStatus] = useState("")
 
-  const filtered = staff.filter(
-    (s) =>
-      s.user.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.user.email.toLowerCase().includes(search.toLowerCase()) ||
-      s.role.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = DEMO_STAFF.filter((s) => {
+    if (employmentType && s.employmentType !== employmentType) return false
+    if (status && s.status !== status) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!s.name.toLowerCase().includes(q) && !s.email.toLowerCase().includes(q) && !s.role.toLowerCase().includes(q)) {
+        return false
+      }
+    }
+    return true
+  })
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
-          Staff Directory
-        </h1>
-        <Input
-          placeholder="Search staff name, email, or role..."
-          value={search}
-          onValueChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-64"
-        />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Staff Directory</h2>
+        <p className="text-sm text-muted-foreground">All staff across the school and parish wings</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Staff List</CardTitle>
+        <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>{filtered.length} Staff Members</CardTitle>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              type="search"
+              placeholder="Search name, email or role…"
+              value={search}
+              onValueChange={setSearch}
+              className="w-full sm:w-64"
+              aria-label="Search staff"
+            />
+            <Select onValueChange={(e) => setEmploymentType(e.target.value)} defaultValue="" name="employmentType" aria-label="Filter by employment type">
+              <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="PERMANENT">Permanent</SelectItem>
+                <SelectItem value="CONTRACT">Contract</SelectItem>
+                <SelectItem value="DAILY">Daily</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={(e) => setStatus(e.target.value)} defaultValue="" name="status" aria-label="Filter by status">
+              <SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                <SelectItem value="TERMINATED">Terminated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
-        <CardContent>
-          {filtered.length === 0 ? (
-            <p className="text-muted dark:text-muted-foreground/60">
-              No staff found. Add staff members first.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell className="text-right">Role</TableCell>
-                  <TableCell className="text-right">Type</TableCell>
-                  <TableCell className="text-right">Joined</TableCell>
-                  <TableCell className="text-right">Phone</TableCell>
-                  <TableCell className="text-right">Actions</TableCell>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead className="text-center">Employment</TableHead>
+                <TableHead className="text-center">Joined</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell>
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-xs text-muted-foreground">{s.email}</div>
+                  </TableCell>
+                  <TableCell className="max-w-56"><span className="line-clamp-1 text-sm">{s.role}</span></TableCell>
+                  <TableCell className="font-mono text-xs">{s.phone}</TableCell>
+                  <TableCell className="text-center text-xs">{s.employmentType}</TableCell>
+                  <TableCell className="text-center text-sm">{new Date(s.dateOfJoining).toLocaleDateString("en-KE", { year: "numeric", month: "short" })}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={STATUS_VARIANT[s.status] ?? "secondary"} size="sm">{s.status.replace("_", " ")}</Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((s) => (
-                  <TableRow key={s.id} className="hover:bg-angle/5 dark:hover:bg-angle/80">
-                    <TableCell>
-                      <div className="font-medium">{s.user.name}</div>
-                      <div className="text-xs text-muted/60">{s.user.email}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-anglican-blue font-sm">{s.role.name}</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-sm text-muted/60">
-                        {s.employmentType.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-sm">
-                        {new Date(s.dateOfJoining).toLocaleDateString("en-KE", {
-                          year: "numeric",
-                          month: "short",
-                        })}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm">{s.phone}</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="link"
-                        onClick={() => onView(s.id)}
-                        className="text-anglican-blue/60 hover:text-anglican-blue"
-                        aria-label="View staff details"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              ))}
+            </TableBody>
+          </Table>
+          {filtered.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No staff match your search.</p>
           )}
         </CardContent>
       </Card>
-
-      {staff.length > 0 && (
-        <p className="mt-4 text-sm text-muted/60 dark:text-muted/40">
-          {staff.length} staff member(s) total
-        </p>
-      )}
     </div>
   )
 }

@@ -1,340 +1,239 @@
-/* eslint-disable react/prop-types */
-/* HR Leave Requests - SaintsHub */
-import { useState, useEffect, useNavigate } from "react"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/toast"
-import { Calendar, Loader2, X } from "lucide-react"
-import { useToast } from "@/components/ui/toast"
+/* LeaveManagement - SaintsHub HR Module
+ * Leave types, entitlement balances, new-request form and request history
+ */
+"use client"
 
-interface LeaveRequestForm {
-  leaveTypeId: string
-  startDate: Date
-  endDate: Date
-  daysRequested: number
-  reason: string
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
+import { Loader2 } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+
+interface LeaveType {
+  key: string
+  name: string
+  daysPerYear: number
 }
 
 interface LeaveRequest {
   id: string
-  leaveType: { name: string; daysPerYear: number }
-  startDate: Date
-  endDate: Date
+  leaveType: { key: string; name: string; daysPerYear: number } | string
+  startDate: string
+  endDate: string
   daysRequested: number
   status: "PENDING" | "APPROVED" | "REJECTED"
-  createdAt: Date
-  staffName: string
+  createdAt: string
+  staffName?: string
 }
 
-interface LeaveBalance {
-  annual: number
-  sick: number
-  personal: number
-  pending: number
+const STATUS_VARIANT: Record<LeaveRequest["status"], "warning" | "success" | "destructive"> = {
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "destructive",
 }
 
-interface LeaveRequestsProps {
-  staffId: string
-  staffName: string
-  initialBalance?: LeaveBalance
-}
-
-export function LeaveRequests({ staffId, staffName, initialBalance }: LeaveRequestsProps) {
+export function LeaveManagement() {
   const [loading, setLoading] = useState(false)
   const [requests, setRequests] = useState<LeaveRequest[]>([])
-  const [form, setForm] = useState<LeaveRequestForm>({
-    leaveTypeId: "",
-    startDate: new Date(),
-    endDate: new Date(),
-    daysRequested: 1,
-    reason: "",
-  })
-  const [leaveTypes, setLeaveTypes] = useState<{ key: string; name: string }[]>([])
-  const [balance, setBalance] = useState<LeaveBalance>({
-    annual: initialBalance?.annual ?? 21,
-    sick: initialBalance?.sick ?? 7,
-    personal: initialBalance?.personal ?? 5,
-    pending: initialBalance?.pending ?? 0,
-  })
-  const navigate = useNavigate()
-  const { toast } = useToast()
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
+  const [loadingData, setLoadingData] = useState(true)
+  const [message, setMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchLeaveTypes()
-    fetchRequests()
+  const today = new Date().toISOString().slice(0, 10)
+  const [leaveTypeId, setLeaveTypeId] = useState("")
+  const [startDate, setStartDate] = useState(today)
+  const [endDate, setEndDate] = useState(today)
+  const [daysRequested, setDaysRequested] = useState("1")
+  const [reason, setReason] = useState("")
+
+  const fetchData = useCallback(async () => {
+    setLoadingData(true)
+    try {
+      const [typesRes, requestsRes] = await Promise.all([
+        fetch("/api/hr?action=leave-types", { cache: "no-store" }),
+        fetch("/api/hr?action=leave-requests&staffId=staff-001", { cache: "no-store" }),
+      ])
+      const typesBody = await typesRes.json().catch(() => null)
+      const requestsBody = await requestsRes.json().catch(() => null)
+      setLeaveTypes(typesBody?.data ?? [])
+      setRequests(requestsBody?.data ?? [])
+    } catch {
+      setLeaveTypes([])
+      setRequests([])
+    } finally {
+      setLoadingData(false)
+    }
   }, [])
 
-  const fetchLeaveTypes = async () => {
-    try {
-      const res = await fetch("/api/hr?action=leave-types", {
-        headers: { "Content-Type": "application/json" },
-      })
-      const data = await res.json()
-      setLeaveTypes(data.map((lt: { key: string; name: string }) => ({ key: lt.key, name: lt.name })))
-    } catch (e) {
-      console.error("Failed to fetch leave types", e)
-    }
-  }
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  const fetchRequests = async () => {
-    try {
-      const res = await fetch("/api/hr?action=leave-requests&staffId=" + staffId, {
-        headers: { "Content-Type": "application/json" },
+  const usedDays = (key: string) =>
+    requests
+      .filter((r) => {
+        const lt = r.leaveType
+        const rKey = typeof lt === "string" ? lt : lt?.key
+        return rKey === key && r.status === "APPROVED"
       })
-      const data = await res.json()
-      setRequests(data)
-    } catch (e) {
-      console.error("Failed to fetch leave requests", e)
-    }
-  }
+      .reduce((sum, r) => sum + (r.daysRequested || 0), 0)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const pendingDays = (key: string) =>
+    requests
+      .filter((r) => {
+        const lt = r.leaveType
+        const rKey = typeof lt === "string" ? lt : lt?.key
+        return rKey === key && r.status === "PENDING"
+      })
+      .reduce((sum, r) => sum + (r.daysRequested || 0), 0)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!leaveTypeId) {
+      setMessage("Select a leave type first.")
+      return
+    }
     setLoading(true)
+    setMessage(null)
     try {
-      const res = await fetch("/api/hr?action=submit-leave-request", {
+      const res = await fetch("/api/hr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          staffId,
-          leaveTypeId: form.leaveTypeId,
-          startDate: form.startDate.toISOString(),
-          endDate: form.endDate.toISOString(),
-          daysRequested: form.daysRequested,
-          reason: form.reason,
+          staffId: "staff-001",
+          leaveTypeId,
+          startDate,
+          endDate,
+          daysRequested: Number(daysRequested) || 1,
+          reason,
         }),
       })
-      const data = await res.json()
-
+      setMessage(res.ok ? "Leave request submitted for approval." : "Could not submit request.")
       if (res.ok) {
-        toast({
-          title: "Leave Request Submitted",
-          description: `Your ${form.leaveTypeId} leave request has been submitted. Status: ${data.status}.`,
-          variant: "default",
-        })
-        fetchRequests()
-        setForm({
-          leaveTypeId: "",
-          startDate: new Date(),
-          endDate: new Date(),
-          daysRequested: 1,
-          reason: "",
-        })
-        navigate("/hr/leave/" + staffId)
-      } else {
-        toast({
-          title: "Request Failed",
-          description: data.error || "Unknown error submitting leave request",
-          variant: "destructive",
-        })
+        setLeaveTypeId("")
+        setReason("")
+        setDaysRequested("1")
+        fetchData()
       }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Network error submitting leave request",
-        variant: "destructive",
-      })
+    } catch {
+      setMessage("Network error submitting leave request.")
     } finally {
       setLoading(false)
     }
   }
 
+  const leaveTypeName = (lt: LeaveRequest["leaveType"]) => (typeof lt === "string" ? lt : lt?.name ?? "Leave")
+
   return (
-    <div className="p-4 sm:p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
-          Leave Management - {staffName}
-        </h1>
-        <p className="text-muted dark:text-muted-foreground/60 mt-1">
-          Request time off and view your leave balance
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Leave Management</h2>
+        <p className="text-sm text-muted-foreground">Balances by leave type, new request form and request history</p>
       </div>
 
-      {/* Balance Summary */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Leave Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-muted/60">Annual</span>
-              <div className="mt-1 font-medium">{balance.annual} days</div>
-              <div className="text-anglican-blue text-sm">
-                {balance.pending} pending
-              </div>
-            </div>
-            <div>
-              <span className="text-muted/60">Sick</span>
-              <div className="mt-1 font-medium">{balance.sick} days</div>
-            </div>
-            <div>
-              <span className="text-muted/60">Personal</span>
-              <div className="mt-1 font-medium">{balance.personal} days</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Balances */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        {leaveTypes.map((lt) => {
+          const remaining = Math.max(lt.daysPerYear - usedDays(lt.key) - pendingDays(lt.key), 0)
+          return (
+            <Card key={lt.key} className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{lt.name}</p>
+              <p className="mt-1 text-2xl font-bold">{remaining}<span className="text-sm font-normal text-muted-foreground"> / {lt.daysPerYear}d</span></p>
+              <p className="text-xs text-muted-foreground">{pendingDays(lt.key)} pending</p>
+            </Card>
+          )
+        })}
+        {!loadingData && leaveTypes.length === 0 && (
+          <p className="col-span-full py-4 text-center text-sm text-muted-foreground">Leave types unavailable.</p>
+        )}
+      </div>
 
-      {/* Submit Leave Request Form */}
-      <Card className="mb-4">
+      {/* New request */}
+      <Card>
         <CardHeader>
           <CardTitle>New Leave Request</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <span className="text-sm text-muted/60">Leave Type</span>
-              <Select onValueChange={(val) => setForm((prev) => ({ ...prev, leaveTypeId: val as string }))} defaultValue="">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select leave type" />
-                </SelectTrigger>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <div className="sm:col-span-2">
+              <label htmlFor="leaveType" className="mb-1 block text-xs font-medium text-muted-foreground">Leave Type</label>
+              <Select onValueChange={(e) => setLeaveTypeId(e.target.value)} defaultValue="" name="leaveType">
+                <SelectTrigger><SelectValue placeholder="Select leave type" /></SelectTrigger>
                 <SelectContent>
                   {leaveTypes.map((lt) => (
-                    <SelectItem key={lt.key} value={lt.key}>
-                      {lt.name}
-                    </SelectItem>
+                    <SelectItem key={lt.key} value={lt.key}>{lt.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div>
-              <span className="text-sm text-muted/60">Start Date</span>
-              <Input
-                type="date"
-                value={form.startDate.toISOString().split("T")[0]}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, startDate: new Date(e.target.value) }))
-                }
-                className="w-full"
-              />
+              <label htmlFor="startDate" className="mb-1 block text-xs font-medium text-muted-foreground">Start Date</label>
+              <Input id="startDate" name="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
             </div>
-
             <div>
-              <span className="text-sm text-muted/60">End Date</span>
-              <Input
-                type="date"
-                value={form.endDate.toISOString().split("T")[0]}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, endDate: new Date(e.target.value) }))
-                }
-                className="w-full"
-              />
+              <label htmlFor="endDate" className="mb-1 block text-xs font-medium text-muted-foreground">End Date</label>
+              <Input id="endDate" name="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
             </div>
-
             <div>
-              <span className="text-sm text-muted/60">Days Requested</span>
-              <Input
-                type="number"
-                value={form.daysRequested}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, daysRequested: Number(e.target.value) }))
-                }
-                min="1"
-                className="w-full"
-              />
-              <p className="text-xs text-muted/60 mt-1">
-                Available: {balance.annual - balance.pending} days
-              </p>
+              <label htmlFor="daysRequested" className="mb-1 block text-xs font-medium text-muted-foreground">Days</label>
+              <Input id="daysRequested" name="daysRequested" type="number" min={1} value={daysRequested} onValueChange={setDaysRequested} required />
             </div>
-
-            <div>
-              <span className="text-sm text-muted/60">Reason</span>
-              <Input
-                placeholder="e.g., Family wedding, medical appointment, personal matters"
-                value={form.reason}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, reason: e.target.value }))
-                }
-                className="w-full"
-              />
+            <div className="sm:col-span-2 lg:col-span-4">
+              <label htmlFor="reason" className="mb-1 block text-xs font-medium text-muted-foreground">Reason</label>
+              <Input id="reason" name="reason" value={reason} onValueChange={setReason} placeholder="e.g. Family wedding, medical appointment" />
             </div>
-
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? (
-                <Loader2 className="h-4 w-4 me-2" />
-              ) : "Submit Leave Request"}
-            </Button>
+            <div className="flex items-end">
+              <Button type="submit" variant="primary" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {loading ? "Submitting…" : "Submit Request"}
+              </Button>
+              {message && <p className="ml-3 self-center text-sm text-muted-foreground">{message}</p>}
+            </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* Existing Leave Requests */}
+      {/* History */}
       <Card>
         <CardHeader>
-          <CardTitle>Leave Request History</CardTitle>
+          <CardTitle>Request History</CardTitle>
         </CardHeader>
-        <CardContent>
-          {requests.length === 0 ? (
-            <p className="text-muted dark:text-muted-foreground/60">
-              No leave requests found. Submit your first request above.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableRequestType>Leave Type</TableRequestType>
-                  <TableRequestType>Period</TableRequestType>
-                  <TableRequestType>Days</TableRequestType>
-                  <TableRequestType>Status</TableRequestType>
-                  <TableRequestType>Submitted</TableRequestType>
-                  <TableRequestType>Action</TableRequestType>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Leave Type</TableHead>
+                <TableHead className="text-center">Period</TableHead>
+                <TableHead className="text-center">Days</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Submitted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{leaveTypeName(r.leaveType)}</TableCell>
+                  <TableCell className="text-center text-sm">
+                    {new Date(r.startDate).toLocaleDateString("en-KE")} → {new Date(r.endDate).toLocaleDateString("en-KE")}
+                  </TableCell>
+                  <TableCell className="text-center">{r.daysRequested}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"} size="sm">{r.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm">{new Date(r.createdAt).toLocaleDateString("en-KE")}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((r) => (
-                  <TableRow key={r.id} className="hover:bg-angle/5 dark:hover:bg-angle/80">
-                    <TableRequestType>{r.leaveType.name}</TableRequestType>
-                    <TableRequestType>
-                      {new Date(r.startDate).toLocaleDateString()} - {new Date(r.endDate).toLocaleDateString()}
-                    </TableRequestType>
-                    <TableRequestType className="text-right font-medium">{r.daysRequested} days</TableRequestType>
-                    <TableRequestType>
-                      <Badge
-                        variant={r.status === "APPROVED" ? "default" : r.status === "REJECTED" ? "destructive" : "secondary"}
-                        size="sm"
-                      >
-                        {r.status}
-                      </Badge>
-                    </TableRequestType>
-                    <TableRequestType>
-                      <div className="text-sm">
-                        {new Date(r.createdAt).toLocaleDateString("en-KE")}
-                        {r.status === "PENDING" ? " • Pending" : ""}
-                      </div>
-                    </TableRequestType>
-                    <TableRequestType>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria-label="View details"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
-                    </TableRequestType>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              ))}
+            </TableBody>
+          </Table>
+          {!loadingData && requests.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No leave requests yet.</p>
           )}
+          {loadingData && <p className="py-8 text-center text-sm text-muted-foreground">Loading leave data…</p>}
         </CardContent>
       </Card>
     </div>
   )
-}
-
-// Helper component type (kept simple)
-function TableRequestType(label: string) {
-  return <TableCell>{label}</TableCell>
 }

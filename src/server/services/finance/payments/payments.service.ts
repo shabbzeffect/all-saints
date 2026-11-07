@@ -86,7 +86,7 @@ export async function processMpesaCallback({
   }
 
   // Try to find matching invoice
-  const invoice = await prisma.invoice.findFirst({
+  let invoice = await prisma.invoice.findFirst({
     where: {
       institutionId,
       invoiceNumber: accountReference,
@@ -338,7 +338,7 @@ export async function processBankTransaction({
   })
 
   // Find matching unpaid invoice
-  const invoice = await prisma.invoice.findFirst({
+  let invoice = await prisma.invoice.findFirst({
     where: {
       institutionId,
       status: {

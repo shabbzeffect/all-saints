@@ -1,11 +1,13 @@
-/* Boarding Dashboard - SaintsHub School Portal
-Provides: Overview of all dormitories, occupancy, fees
-*/
+/* BoardingDashboard - SaintsHub School Portal
+ * Dormitory overview: occupancy, capacity and status
+ */
+"use client"
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { BedDouble, Users, Building2, Percent } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface Dormitory {
   id: string
@@ -17,176 +19,98 @@ interface Dormitory {
   isActive: boolean
 }
 
-interface BoardingDashboardProps {
-  dormitories: Dormitory[]
-}
-
-export function BoardingDashboard({ dormitories }: BoardingDashboardProps) {
-  const [fees, setFees] = useState<any[]>([])
-  const searchParams = useSearchParams()
+export function BoardingDashboard() {
+  const [dormitories, setDormitories] = useState<Dormitory[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch boarding fees
-    fetch("/api/boarding/fees?wing=SCHOOL", { cache: "no-store" }).then(
-      (res) => res.json().then((d) => setFees(d.data || []))
-    )
-  }, [searchParams])
+    fetch("/api/boarding/dormitories", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => setDormitories(body?.data ?? body?.dormitories ?? []))
+      .catch(() => setDormitories([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   const totalCapacity = dormitories.reduce((sum, d) => sum + d.capacity, 0)
   const totalOccupancy = dormitories.reduce((sum, d) => sum + d.currentOccupancy, 0)
   const overallOccupancyRate = totalCapacity > 0 ? Math.round((totalOccupancy / totalCapacity) * 100) : 0
+  const activeDormitories = dormitories.filter((d) => d.isActive).length
+
+  const metrics = [
+    { label: "Boarders", value: totalOccupancy, icon: Users },
+    { label: "Total Capacity", value: totalCapacity, icon: BedDouble },
+    { label: "Occupancy Rate", value: `${overallOccupancyRate}%`, icon: Percent },
+    { label: "Active Dormitories", value: activeDormitories, icon: Building2 },
+  ]
 
   return (
-    <div className="p-4 sm:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-blue dark:text-anglican-blue-100">
-          Boarding Dashboard
-        </h1>
-        <p className="text-muted dark:text-muted-foreground mt-1">
-          Dormitory management & occupancy overview
-        </p>
-      </header>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-angle/5 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium text-sm">Total Students</p>
-              <p className="text-3xl font-bold text-anglican-blue">
-                {totalOccupancy}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-angle/5 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium text-sm">Total Capacity</p>
-              <p className="text-3xl font-bold">
-                {totalCapacity}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-angle/5 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium text-sm">Occupancy Rate</p>
-              <p className="text-2xl font-bold {overallOccupancyRate >= 80 ? 'text-danger' : overallOccupancyRate >= 50 ? 'text-warning' : 'text-success'}">
-                {overallOccupancyRate}%
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6 border border-border-dark/30 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-angle/5 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-anglican-blue font-medium text-sm">Active Dormitories</p>
-              <p className="text-3xl font-bold">
-                {dormitories.filter((d) => d.isActive).length}
-              </p>
-            </div>
-          </div>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Boarding Overview</h2>
+        <p className="text-sm text-muted-foreground">Dormitory occupancy across the school</p>
       </div>
 
-      {/* Dormitories Table */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+                <p className="mt-1 text-2xl font-bold">{metric.value}</p>
+              </div>
+              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
+                <metric.icon className="h-5 w-5" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Dormitories</CardTitle>
         </CardHeader>
-        <CardContent>
-          {dormitories.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-8">
-              No dormitories found. Add a dormitory first.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableClassName>Dormitory</TableClassName>
-                  <TableCell className="text-center">Type</TableCell>
-                  <TableCell className="text-center">Capacity</TableCell>
-                  <TableCell className="text-center">Occupied</TableCell>
-                  <TableCell className="text-center">Rate</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dormitories.map((dorm) => (
-                  <TableRow
-                    key={dorm.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Dormitory</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Occupied</TableHead>
+                <TableHead className="text-center">Occupancy</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {dormitories.map((dorm) => {
+                const rate = dorm.capacity > 0 ? Math.round((dorm.currentOccupancy / dorm.capacity) * 100) : 0
+                return (
+                  <TableRow key={dorm.id}>
                     <TableCell>
                       <div className="font-medium">{dorm.name}</div>
-                      <div className="text-xs text-muted/60">{dorm.wing} wing</div>
+                      <div className="text-xs text-muted-foreground">{dorm.wing} wing</div>
                     </TableCell>
+                    <TableCell className="text-center">{dorm.type}</TableCell>
+                    <TableCell className="text-center">{dorm.currentOccupancy}/{dorm.capacity}</TableCell>
                     <TableCell className="text-center">
-                      <Badge
-                        variant="default"
-                        size="sm"
-                      >
-                        {dorm.capacity}
+                      <Badge variant={rate >= 100 ? "destructive" : rate >= 80 ? "warning" : "success"} size="sm">
+                        {rate}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge
-                        variant={dorm.currentOccupancy >= dorm.capacity ? "destructive" : "default"}
-                        size="sm"
-                      >
-                        {dorm.currentOccupancy}/{dorm.capacity}
+                      <Badge variant={dorm.isActive ? "success" : "secondary"} size="sm">
+                        {dorm.isActive ? "Active" : "Inactive"}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={overallOccupancyRate >= 80 ? "destructive" : overallOccupancyRate >= 50 ? "warning" : "default"}
-                        size="sm"
-                      >
-                        {overallOccupancyRate}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-blue/60 hover:text-anglican-blue text-sm"
-                        aria="View dormitory details"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                )
+              })}
+            </TableBody>
+          </Table>
+          {!loading && dormitories.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No dormitories configured yet.</p>
           )}
+          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading dormitories…</p>}
         </CardContent>
       </Card>
     </div>

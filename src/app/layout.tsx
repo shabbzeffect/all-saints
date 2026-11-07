@@ -1,9 +1,10 @@
 import "./globals.css"
+import type { Metadata } from "next"
 import { Providers } from "@/components/providers/SessionProvider"
 
-export const metadata = {
-  title: "SAINTS",
-  description: "School Management System",
+export const metadata: Metadata = {
+  title: "SaintsHub — All Saints Mushililie",
+  description: "All Saints Mushililie School & Parish Management Platform",
 }
 
 export default function RootLayout({
@@ -13,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

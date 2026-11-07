@@ -1,14 +1,15 @@
-/* Shared RBAC - SaintsHub Platform
-Provides: Permissions and role management
-*/
-import { Input } from "@/components/ui/input"
+/* Rbac - SaintsHub Admin
+ * Roles and permissions: live permission catalog from the API plus the
+ * system role matrix used across school and parish wings.
+ */
+"use client"
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableCell, TableBody } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { ShieldCheck } from "lucide-react"
+import { useState, useEffect } from "react"
 
 interface Permission {
   id: string
@@ -16,301 +17,110 @@ interface Permission {
   name: string
   description: string
   scope: "GLOBAL" | "INSTITUTION" | "RESOURCE"
-  resource?: string
-  action?: string
   isSystem: boolean
 }
 
-interface Role {
-  id: string
-  key: string
-  name: string
-  description: string
-  institutionId?: string
-  isSystem: boolean
-  priority: number
-}
+const DEMO_ROLES = [
+  { key: "principal", name: "Principal", description: "Full school administration", priority: 100, isSystem: true },
+  { key: "bursar", name: "Bursar", description: "Fees, receipts and finance reports", priority: 80, isSystem: true },
+  { key: "teacher", name: "Teacher", description: "Classes, attendance, assessments", priority: 60, isSystem: true },
+  { key: "vicar", name: "Vicar", description: "Parish leadership and communications", priority: 100, isSystem: true },
+  { key: "treasurer", name: "Treasurer", description: "Parish finance and offerings", priority: 80, isSystem: true },
+  { key: "parent", name: "Parent", description: "Own children: fees, reports, receipts", priority: 10, isSystem: true },
+]
 
-interface UserRoleAssignment {
-  id: string
-  userId: string
-  roleId: string
-  assignedAt: string
-  assignedBy: string
-}
-
-interface PermissionFilter {
-  scope?: "GLOBAL" | "INSTITUTION" | "RESOURCE"
-  isSystem?: boolean
-}
-
-interface RoleFilter {
-  isSystem?: boolean
+const SCOPE_VARIANT: Record<Permission["scope"], "primary" | "info" | "secondary"> = {
+  GLOBAL: "primary",
+  INSTITUTION: "info",
+  RESOURCE: "secondary",
 }
 
 export function Rbac() {
-  const [filters, setFilters] = useState<PermissionFilter>({
-    scope: "",
-    isSystem: undefined,
-  })
+  const [scope, setScope] = useState("")
   const [permissions, setPermissions] = useState<Permission[]>([])
-  const [roles, setRoles] = useState<Role[]>([])
-  const [assignments, setAssignments] = useState<UserRoleAssignment[]>([])
-  const searchParams = useSearchParams()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const scope = searchParams.get("scope") as "GLOBAL" | "INSTITUTION" | "RESOURCE" || ""
-    const isSystem = searchParams.get("isSystem")
-    setFilters({ scope, isSystem: isSystem === "true" })
-  }, [searchParams])
-
-  const fetchPermissions = useCallback(async () => {
-    const response = await fetch(`/api/shared/rbac${searchParams.toString() ? `&${searchParams.toString()}` : ""}`, {
-      cache: "no-store",
-    })
-    const data = await response.json()
-    setPermissions(data.data?.permissions || [])
-    setRoles(data.data?.roles || [])
-    setAssignments(data.data?.assignments || [])
-  }, [searchParams])
-
-  useEffect(() => {
-    fetchPermissions()
-  }, [fetchPermissions])
-
-  const filteredPermissions = permissions.filter((permission) => {
-    const matchesScope = filters.scope ? permission.scope === filters.scope : true
-    const matchesIsSystem = filters.isSystem !== undefined ? permission.isSystem === filters.isSystem : true
-    return matchesScope && matchesIsSystem
-  })
-
-  const filteredRoles = roles.filter((role) => {
-    const matchesIsSystem = filters.isSystem !== undefined ? role.isSystem === filters.isSystem : true
-    return matchesIsSystem
-  })
-
-  const handleFilterChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const value = (e.target as HTMLInputElement | HTMLSelectElement).value
-      const name = (e.target as HTMLInputElement | HTMLSelectElement).name
-      setFilters((prev) => ({
-        ...prev,
-        [name]: name === "isSystem" ? (value === "true") : value,
-      }))
-    },
-    []
-  )
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      // Could implement search if needed
-    },
-    []
-  )
+    setLoading(true)
+    fetch(`/api/shared/rbac${scope ? `?scope=${scope}` : ""}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => setPermissions(body?.data ?? []))
+      .catch(() => setPermissions([]))
+      .finally(() => setLoading(false))
+  }, [scope])
 
   return (
-    <div className="p-4 sm:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-anglican-purple dark:text-anglican-purple-100">
-          RBAC & Permissions
-        </h1>
-        <p className="text-muted dark:text-muted-foreground mt-1">
-          Roles, permissions & assignments
-        </p>
-      </header>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">Roles & Access</h2>
+        <p className="text-sm text-muted-foreground">Permission catalog and system roles across both wings</p>
+      </div>
 
-      {/* Permissions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Permissions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredPermissions.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-8">
-              No permissions found.
-            </p>
-          ) : (
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Permissions ({permissions.length})</CardTitle>
+            <Select onValueChange={(e) => setScope(e.target.value)} defaultValue="" name="scope" aria-label="Filter by scope">
+              <SelectTrigger className="w-44"><SelectValue placeholder="All scopes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All scopes</SelectItem>
+                <SelectItem value="GLOBAL">Global</SelectItem>
+                <SelectItem value="INSTITUTION">Institution</SelectItem>
+                <SelectItem value="RESOURCE">Resource</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableClassName>Permission</TableClassName>
-                  <TableCell className="text-center">Scope</TableCell>
-                  <TableCell className="text-center">System</TableCell>
-                  <TableCell></TableCell>
+                  <TableHead>Permission</TableHead>
+                  <TableHead className="text-center">Scope</TableHead>
+                  <TableHead className="text-center">System</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPermissions.map((permission) => (
-                  <TableRow
-                    key={permission.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
+                {permissions.map((perm) => (
+                  <TableRow key={perm.id}>
                     <TableCell>
-                      <div className="font-medium">{permission.key}</div>
-                      <div className="text-xs text-muted/60">{permission.name}</div>
+                      <div className="font-medium">{perm.name}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{perm.key}</div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge
-                        variant={permission.isSystem ? "default" : "secondary"}
-                        size="sm"
-                      >
-                        {permission.isSystem ? "System" : "Custom"}
-                      </Badge>
+                      <Badge variant={SCOPE_VARIANT[perm.scope] ?? "secondary"} size="sm">{perm.scope}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-purple/60 hover:text-anglican-purple text-sm"
-                        aria="View permission details"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
+                    <TableCell className="text-center">
+                      {perm.isSystem ? <Badge variant="secondary" size="sm">System</Badge> : <span className="text-xs text-muted-foreground">Custom</span>}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+            {!loading && permissions.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">No permissions found.</p>
+            )}
+            {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading permissions…</p>}
+          </CardContent>
+        </Card>
 
-      {/* Roles */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Roles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredRoles.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-8">
-              No roles found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableClassName>Role</TableClassName>
-                  <TableCell className="text-center">System</TableCell>
-                  <TableCell className="text-center">Priority</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRoles.map((role) => (
-                  <TableRow
-                    key={role.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
-                    <TableCell>
-                      <div className="font-medium">{role.key}</div>
-                      <div className="text-xs text-muted/60">{role.name}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={role.isSystem ? "default" : "secondary"}
-                        size="sm"
-                      >
-                        {role.isSystem ? "System" : "Custom"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="text-sm font-medium">{role.priority}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-purple/60 hover:text-anglican-purple text-sm"
-                        aria="View role details"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Assignments */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Role Assignments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {assignments.length === 0 ? (
-            <p className="text-center text-muted dark:text-muted-foreground py-8">
-              No role assignments found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableClassName>User</TableClassName>
-                  <TableCell className="text-center">Role</TableCell>
-                  <TableCell className="text-center">Assigned At</TableCell>
-                  <TableCell className="text-center">Assigned By</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignments.map((assignment) => (
-                  <TableRow
-                    key={assignment.id}
-                    className="hover:bg-angle/5 dark:hover:bg-angle/80"
-                  >
-                    <TableCell>
-                      <div className="font-medium">User {assignment.userId}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="text-sm">{assignment.roleId}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="text-sm text-muted/60">{assignment.assignedAt}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="text-sm text-muted/60">{assignment.assignedBy || "—"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="link"
-                        className="text-anglican-purple/60 hover:text-anglican-purple text-sm"
-                        aria="View assignment details"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M9.13 6.077A2.98 2.98 0 0111 7.937c0 .817-.087 1.615-.243 2.365H4.718a2.984 2.984 0 01-1.934-.955L.094 8.84a2.983 2.983 0 01-.147-.671c0 .337.093.654.287.932l3.446 2.365a2.982 2.982 0 01.073 1.227l1.323-.661a2.98 2.98 0 01-.29 1.109zM11 15a4 4 0 100-8 4 4 0 000 8zM9.855 5.937a1 1 0 011.244 0l.088.011a1 1 0 11.011 1.99l-.088-.011a1 1 0 01-1.244 0l-.088.011  -.117-.056a2.983 2.983 0 01-.198-.548zM15 9.5a5 5 0 11-6.095 2.888L15 9.5zm-6.092 6.317a1 1 0 11-.987-.182l-.177.065.009.152a1 1 0 01-.001.95l.176-.065a1 1 0 01-.986-.182zM5.5 13.5a3 3 0 01-.383-2.35l.818-1.736.766.555.04.011a3 3 0 012.407 2.351l-.818 1.736-.766-.555-.04-.011z" />
-                        </svg>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> System Roles</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {DEMO_ROLES.map((role) => (
+              <div key={role.key} className="rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">{role.name}</p>
+                  <span className="text-xs text-muted-foreground">Priority {role.priority}</span>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">{role.description}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{role.key}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

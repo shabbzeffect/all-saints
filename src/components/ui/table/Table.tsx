@@ -22,6 +22,12 @@ interface TableCellProps {
   children?: React.ReactNode
 }
 
+export const TableHead = ({ className, children }: TableCellProps) => {
+  return <th className={cn("p-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground select-none", className)}>{children}</th>
+}
+
+TableHead.displayName = "TableHead"
+
 export const TableHeader = ({ className, children }: TableHeaderProps) => {
   return <thead className={cn("bg-angle/5 dark:bg-angle/20", className)}>{children}</thead>
 }

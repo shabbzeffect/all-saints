@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Button } from "@/components/ui"
 
@@ -19,7 +19,7 @@ export default function VerifyRequestPage() {
           </div>
           <h2 className="text-lg font-semibold text-foreground mb-2">Check your email</h2>
           <p className="text-muted-foreground text-sm">
-            We've sent a sign-in link to your email address. Please check your inbox and click the link to sign in.
+            We&apos;ve sent a sign-in link to your email address. Please check your inbox and click the link to sign in.
           </p>
         </div>
 
@@ -28,7 +28,7 @@ export default function VerifyRequestPage() {
         </Button>
 
         <p className="mt-6 text-xs text-muted-foreground">
-          SaintsHub v0.1.0 · All Saints Mushililie
+          SaintsHub v0.1.0 Â· All Saints Mushililie
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-/* LoginPage.tsx
+﻿/* LoginPage.tsx
  * Auth - Login page
  * Provides: Login form with email/password, remember me, register link
  */
@@ -95,7 +95,7 @@ export function LoginPage() {
             </div>
 
             <div className="text-center text-sm text-muted/60">
-              Don't have an account? <a href="/onboarding" className="underline hover:text-anglican-blue">
+              Don&apos;t have an account? <a href="/onboarding" className="underline hover:text-anglican-blue">
                 Get started
               </a>
             </div>

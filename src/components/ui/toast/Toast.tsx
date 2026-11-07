@@ -1,37 +1,38 @@
-import { ReactNode, useState, useEffect } from "react"
-import { cn } from "@/lib/utils"
+import React, { ReactNode, useState, useEffect, useRef } from "react"; // Added useRef here
+import { cn } from "@/lib/utils";
 
 interface Toast {
-  id: string
-  title: string
-  description?: string
-  action?: ReactNode
-  variant?: "default" | "destructive"
+  id: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  variant?: "default" | "destructive";
 }
 
 interface ToastProps {
-  toast: Toast
-  duration?: number
+  toast: Toast;
+  duration?: number;
 }
-
-const containerRef = ReactReact.useRef<HTMLDivElement>(null)
 
 const useToast = (toast: Toast, duration = 4000) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [autoDismiss, setAutoDismiss] = useState(true)
+  const [isVisible, setIsVisible] = useState(false);
+  const [autoDismiss, setAutoDismiss] = useState(true);
 
   useEffect(() => {
-    if (!isVisible) return
+    if (!isVisible) return;
 
-    const timer = setTimeout(() => setIsVisible(false), duration)
-    return () => clearTimeout(timer)
-  }, [isVisible, duration])
+    const timer = setTimeout(() => setIsVisible(false), duration);
+    return () => clearTimeout(timer);
+  }, [isVisible, duration]);
 
-  return { isVisible, setIsVisible, autoDismiss, setAutoDismiss }
-}
+  return { isVisible, setIsVisible, autoDismiss, setAutoDismiss };
+};
 
 export function Toast({ toast, duration = 4000 }: ToastProps) {
-  const { isVisible, setIsVisible } = useToast(toast, duration)
+  const { isVisible, setIsVisible } = useToast(toast, duration);
+
+  // Moved inside the component and updated to use the direct import
+  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
@@ -57,9 +58,13 @@ export function Toast({ toast, duration = 4000 }: ToastProps) {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-neutral-200 dark:text-neutral-800">{toast.title}</p>
+              <p className="font-medium text-neutral-200 dark:text-neutral-800">
+                {toast.title}
+              </p>
               {toast.description && (
-                <p className="mt-0.5 text-neutral-500/80 dark:text-neutral-400/{80} text-xs/{1.5}">{toast.description}</p>
+                <p className="mt-0.5 text-neutral-500/80 dark:text-neutral-400/{80} text-xs/{1.5}">
+                  {toast.description}
+                </p>
               )}
             </div>
             {toast.action && <span>{toast.action}</span>}
@@ -67,5 +72,5 @@ export function Toast({ toast, duration = 4000 }: ToastProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

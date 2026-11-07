@@ -331,7 +331,6 @@ export async function withRateLimit(
 // EXPORT ALL
 // ============================================================================
 
-export type { MiddlewareConfig, Wing }
 export {
   withAuth,
   requirePermission,

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 /* Onboarding Page - SaintsHub
 Provides: New user onboarding, institution setup, role selection
 */
@@ -8,7 +8,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { GraduationCap, Building2, Users, Heart, Shield, Users2 } from "lucide-react"
 
-export function OnboardingPage() {
+function OnboardingPage() {
   const [wing, setWing] = useState<"school" | "parish" | null>(null)
   const [selectedRole, setSelectedRole] = useState<string | null>(null)
   const router = useRouter()
@@ -22,9 +22,9 @@ export function OnboardingPage() {
 
     // For now, just navigate to the appropriate dashboard
     if (wing === "school") {
-      router.push("/app/exec?institution=school")
+      router.push("/exec?institution=school")
     } else if (wing === "parish") {
-      router.push("/app/exec?institution=parish")
+      router.push("/exec?institution=parish")
     }
   }
 
