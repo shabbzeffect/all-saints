@@ -1,4 +1,5 @@
 ﻿import { CheckCircle2, CalendarDays, PhoneCall, FileText, ClipboardCheck, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { VisitForm } from "@/components/public/VisitForm"
 
 export const metadata = {
@@ -35,7 +36,12 @@ export default function AdmissionsPage() {
       {/* Steps */}
       <section className="border-b border-[#1f2a44]/12">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <h2 className="font-serif text-3xl font-bold">How you join — four steps, honestly</h2>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-serif text-3xl font-bold">How you join — four steps, honestly</h2>
+              <Link href="/admissions/apply" className="shrink-0 rounded-md bg-[#d9a441] px-4 py-2 text-sm font-bold text-[#1f2a44] transition-colors hover:bg-[#e6b654]">
+                Start the application
+              </Link>
+            </div>
           <ol className="mt-8 divide-y divide-[#1f2a44]/12 border-y border-[#1f2a44]/12">
             {STEPS.map((step, i) => (
               <li key={step.title} className="grid grid-cols-12 items-baseline gap-4 py-4">

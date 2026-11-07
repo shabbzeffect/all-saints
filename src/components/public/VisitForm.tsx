@@ -1,6 +1,6 @@
-﻿"use client"
+"use client"
 
-/* VisitForm - sign the visitor book (demo: no network call, stored locally)
+/* VisitForm - sign the visitor book (demo: records locally + POST to /api/enquiries)
  * Used on the homepage hero, admissions and contact pages
  */
 import { useState } from "react"
@@ -18,7 +18,7 @@ export function VisitForm({ compact = false }: { compact?: boolean }) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!name.trim() || !phone.trim()) {
       setError("We need your name and phone number to call you back.")
@@ -32,6 +32,15 @@ export function VisitForm({ compact = false }: { compact?: boolean }) {
       window.localStorage.setItem("saints-visitors", JSON.stringify([...existing, entry]))
     } catch {
       /* localStorage unavailable — still show confirmation */
+    }
+    try {
+      await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), grade, date: date || null }),
+      })
+    } catch {
+      /* demo: confirmation still shown */
     }
     window.setTimeout(() => {
       setSaving(false)
@@ -131,7 +140,7 @@ export function VisitForm({ compact = false }: { compact?: boolean }) {
         {saving ? "Signing the book…" : "Book our school visit"}
       </button>
       <p className="mt-1.5 text-center text-[10px] leading-snug text-[#1f2a44]/70">
-        We confirm within one working day — a person, not a robot. (Demo: nothing is sent from this device.)
+        We confirm within one working day — a person, not a robot. (Demo: recorded on this device; syncs when the database connects.)
       </p>
     </form>
   )

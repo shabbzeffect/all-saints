@@ -47,17 +47,23 @@ export default function PublicHome() {
 
             <div className="mt-5 max-w-md">
               <VisitForm />
+              <p className="mt-2 text-center text-xs text-[#1f2a44]/70">
+                Ready to apply?{" "}
+                <Link href="/admissions/apply" className="font-semibold text-[#1f2a44] underline decoration-[#d9a441] decoration-2 underline-offset-4 hover:decoration-[#1f2a44]">
+                  Start the application — 20 minutes
+                </Link>
+              </p>
             </div>
 
             {/* the visit as named steps */}
-            <ol className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] font-medium uppercase tracking-wider text-[#1f2a44]/70">
-              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[9px]">1</span> The gate</li>
+            <ol className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[10px] font-medium uppercase tracking-wider text-[#1f2a44]/70">
+              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[10px]">1</span> The gate</li>
               <ChevronRight className="h-3 w-3" aria-hidden="true" />
-              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[9px]">2</span> Assembly courtyard</li>
+              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[10px]">2</span> Assembly courtyard</li>
               <ChevronRight className="h-3 w-3" aria-hidden="true" />
-              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[9px]">3</span> Chapel</li>
+              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[10px]">3</span> Chapel</li>
               <ChevronRight className="h-3 w-3" aria-hidden="true" />
-              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[9px]">4</span> Classrooms</li>
+              <li className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full border border-[#1f2a44]/35 text-[10px]">4</span> Classrooms</li>
             </ol>
           </div>
 
@@ -98,7 +104,7 @@ export default function PublicHome() {
                 <block.icon className="h-5 w-5 text-[#d9a441]" strokeWidth={1.6} aria-hidden="true" />
                 <p className="text-xs font-bold tracking-widest text-[#f5f3ed]/60">{block.time}</p>
                 <p className="text-sm font-semibold leading-tight text-[#f5f3ed]">{block.label}</p>
-                <p className="text-[11px] leading-snug text-[#f5f3ed]/60">{block.note}</p>
+                <p className="text-[10px] leading-snug text-[#f5f3ed]/60">{block.note}</p>
               </div>
             ))}
           </div>

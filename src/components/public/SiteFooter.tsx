@@ -24,7 +24,9 @@ export function SiteFooter() {
               <li><Link href="/about" className="hover:text-white">About</Link></li>
               <li><Link href="/academics" className="hover:text-white">Academics</Link></li>
               <li><Link href="/admissions" className="hover:text-white">Admissions</Link></li>
-              <li><Link href="/events" className="hover:text-white">Events &amp; notices</Link></li>
+              <li><Link href="/admissions/apply" className="hover:text-white">Apply now</Link></li>
+              <li><Link href="/events" className="hover:text-white">Events</Link></li>
+              <li><Link href="/notices" className="hover:text-white">Notices</Link></li>
             </ul>
           </nav>
           <nav className="md:col-span-2" aria-label="Parish">

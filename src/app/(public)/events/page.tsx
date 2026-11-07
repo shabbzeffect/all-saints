@@ -1,5 +1,6 @@
 ﻿"use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { MapPin, Clock } from "lucide-react"
 import { cn } from "@/lib/config"
@@ -41,7 +42,10 @@ export default function EventsPage() {
           <h1 className="font-serif text-4xl font-bold sm:text-6xl">What the calendar holds</h1>
           <p className="mt-3 max-w-2xl text-[#1f2a44]/75">
             School, parish and open-morning dates. Illustrative for the demo — the notice board at the gate
-            always carries the truth for this Sunday.
+            always carries the truth for this Sunday.{" "}
+            <Link href="/notices" className="font-semibold text-[#1f2a44] underline decoration-[#d9a441] decoration-2 underline-offset-4 hover:decoration-[#1f2a44]">
+              The full notice board →
+            </Link>
           </p>
           <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter events">
             {FILTERS.map((f) => (

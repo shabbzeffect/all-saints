@@ -30,7 +30,7 @@ export function Wordmark({ light = false }: { light?: boolean }) {
         <span className={cn("block font-serif text-lg font-bold tracking-tight", light ? "text-[#f5f3ed]" : "text-[#1f2a44]")}>
           All Saints Mushililie
         </span>
-        <span className={cn("block text-[9px] font-semibold uppercase tracking-[0.22em]", light ? "text-[#d9a441]" : "text-[#6f5410]")}>
+        <span className={cn("block text-[10px] font-semibold uppercase tracking-[0.22em]", light ? "text-[#d9a441]" : "text-[#6f5410]")}>
           Academy &amp; Parish
         </span>
       </span>
