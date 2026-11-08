@@ -75,7 +75,7 @@ export default function ParishPage() {
       {/* Invitation */}
       <section>
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <div className="rounded-2xl bg-[#1f2a44] p-8 text-[#f5f3ed] sm:p-10">
+          <div className="rounded-xl bg-[#1f2a44] p-8 text-[#f5f3ed] sm:p-10">
             <h2 className="font-serif text-3xl font-bold leading-tight sm:text-4xl">First time? Sit near the back.<br /><span className="text-[#d9a441]">Someone will bring you a hymn book.</span></h2>
             <p className="mt-3 max-w-xl text-[#f5f3ed]/80">
               You don&rsquo;t need to know the responses. You don&rsquo;t need to dress up. You need to be willing to sit

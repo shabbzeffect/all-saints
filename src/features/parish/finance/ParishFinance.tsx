@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { HandCoins } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { formatCurrency } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Donation {
   id: string
@@ -187,7 +188,7 @@ export function ParishFinance() {
           {!loading && visible.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No donations recorded yet.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading donations…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
 

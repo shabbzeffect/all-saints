@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react";
 import { Users } from "lucide-react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Student {
   id: string
@@ -125,7 +126,7 @@ export function StudentsPage() {
               <p className="text-xs text-muted-foreground/70">{searchTerm || grade || status ? "Try clearing a filter." : "Records appear here once the SIS is connected."}</p>
             </div>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading students…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,6 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next/standalone",
   "env": {
     "FEATURE_LIBRARY_ENABLED": "true",
     "FEATURE_PAYROLL_ENABLED": "true",

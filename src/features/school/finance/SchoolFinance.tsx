@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/config"
 import { useState, useEffect, useCallback } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface FeeStructure {
   id: string
@@ -221,7 +222,7 @@ export function SchoolFinance() {
           {!loading && visiblePayments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No payments found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading payments…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
 

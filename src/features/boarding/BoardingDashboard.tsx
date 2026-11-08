@@ -8,6 +8,7 @@ import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@
 import { Badge } from "@/components/ui/badge"
 import { BedDouble, Users, Building2, Percent } from "lucide-react"
 import { useEffect, useState } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Dormitory {
   id: string
@@ -58,9 +59,7 @@ export function BoardingDashboard() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
               </div>
-              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
-                <metric.icon className="h-5 w-5" />
-              </div>
+              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}
@@ -110,7 +109,7 @@ export function BoardingDashboard() {
           {!loading && dormitories.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No dormitories configured yet.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading dormitories…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

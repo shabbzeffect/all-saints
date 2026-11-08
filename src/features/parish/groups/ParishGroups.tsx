@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface ParishGroup {
   id: string
@@ -136,7 +137,7 @@ export function ParishGroups() {
           {!loading && visible.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No groups found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading groups…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

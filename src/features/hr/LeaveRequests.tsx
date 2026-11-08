@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface LeaveType {
   key: string
@@ -231,7 +232,7 @@ export function LeaveManagement() {
           {!loadingData && requests.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No leave requests yet.</p>
           )}
-          {loadingData && <p className="py-8 text-center text-sm text-muted-foreground">Loading leave data…</p>}
+          {loadingData && <TableSkeleton columns={5} rows={6} />}
         </CardContent>
       </Card>
     </div>

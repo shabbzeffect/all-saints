@@ -1,4 +1,4 @@
-﻿/* ParentDashboard - SaintsHub Parent Portal
+/* ParentDashboard - SaintsHub Parent Portal
  * Children overview, outstanding balances and quick actions
  */
 "use client"
@@ -50,9 +50,7 @@ export function ParentDashboard({ students, onNavigate }: ParentDashboardProps) 
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
               </div>
-              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
-                <metric.icon className="h-5 w-5" />
-              </div>
+              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}
@@ -63,9 +61,9 @@ export function ParentDashboard({ students, onNavigate }: ParentDashboardProps) 
           <button
             key={action.href}
             onClick={() => onNavigate(action.href)}
-            className="group rounded-xl border border-border bg-card p-5 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-anglican-blue-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-anglican-blue-500"
+            className="group rounded-xl border border-border bg-card p-5 text-left cursor-pointer transition-colors duration-200 hover:border-anglican-blue-400 hover:bg-anglican-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-anglican-blue-500"
           >
-            <action.icon className="h-6 w-6 text-anglican-blue-700 transition-transform group-hover:-translate-y-0.5" />
+            <action.icon className="h-6 w-6 text-anglican-blue-700 transition-colors group-hover:text-anglican-blue-800" />
             <p className="mt-3 font-semibold">{action.title}</p>
             <p className="text-sm text-muted-foreground">{action.description}</p>
           </button>

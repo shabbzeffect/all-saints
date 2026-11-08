@@ -42,9 +42,7 @@ export default function ParishPage() {
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
                 <p className="text-xs text-muted-foreground">{metric.sub}</p>
               </div>
-              <div className="rounded-lg bg-anglican-purple-50 p-2 text-anglican-purple-700">
-                <metric.icon className="h-5 w-5" />
-              </div>
+              <metric className="h-6 w-6 text-anglican-purple-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}

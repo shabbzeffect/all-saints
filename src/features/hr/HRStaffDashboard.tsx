@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface StaffRow {
   id: string
@@ -142,7 +143,7 @@ export function HRStaffDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Loading leave requests…</p>
+              <TableSkeleton columns={6} rows={5} className="py-3" />
             ) : leaveRequests.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="font-medium">All caught up</p>

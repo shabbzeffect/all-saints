@@ -76,9 +76,7 @@ export default function ExecDashboard() {
                 <p className="mt-1 text-2xl font-bold">{kpi.value}</p>
                 <p className="text-xs text-muted-foreground">{kpi.sub}</p>
               </div>
-              <div className="rounded-lg bg-anglican-blue-50 p-2.5 text-anglican-blue-700">
-                <kpi.icon className="h-6 w-6" />
-              </div>
+              <kpi className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}

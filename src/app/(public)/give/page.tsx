@@ -63,7 +63,7 @@ export default function GivePage() {
               </div>
             ))}
           </div>
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#1f4d33] p-6 text-[#eef3ea]">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-[#1f4d33] p-6 text-[#eef3ea]">
             <div>
               <p className="font-serif text-2xl font-bold">120 households give monthly.</p>
               <p className="mt-1 text-sm text-[#eef3ea]/90">Join them — even KSh 500 a month keeps a bursary alive.</p>

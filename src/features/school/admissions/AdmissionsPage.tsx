@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { UserPlus } from "lucide-react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Applicant {
   id: string
@@ -125,7 +126,7 @@ export function AdmissionsPage() {
           {!loading && visible.length === 0 && (
             <div className="flex flex-col items-center py-8"><UserPlus className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" /><p className="mt-2 text-sm font-medium text-muted-foreground">No applicants yet</p><Link href="/admissions/apply" className="mt-1 text-xs font-semibold text-anglican-blue-700 hover:underline">Families can apply online � share the link</Link></div>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading applicants…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

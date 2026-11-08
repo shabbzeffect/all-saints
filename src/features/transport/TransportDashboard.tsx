@@ -10,6 +10,7 @@ import { Bus, Route as RouteIcon, Users, Wallet } from "lucide-react"
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/config"
 import { cn } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Vehicle {
   id: string
@@ -128,9 +129,7 @@ export function TransportDashboard() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
               </div>
-              <div className="rounded-lg bg-anglican-blue-50 p-2 text-anglican-blue-700">
-                <metric.icon className="h-5 w-5" />
-              </div>
+              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}
@@ -273,7 +272,7 @@ export function TransportDashboard() {
             </Table>
           )}
 
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading transport data…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
           {!loading &&
             ((tab === "vehicles" && vehicles.length === 0) ||
               (tab === "routes" && routes.length === 0) ||

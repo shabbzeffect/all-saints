@@ -19,7 +19,7 @@ export default function BoardingPage() {
             href={section.href}
             className="group rounded-xl border border-border-dark/30 bg-card p-5 transition-colors hover:border-anglican-blue-400 hover:bg-anglican-blue-50/40"
           >
-            <section.icon className="h-6 w-6 text-anglican-blue-700 transition-transform group-hover:-translate-y-0.5" />
+            <section.icon className="h-6 w-6 text-anglican-blue-700 transition-colors group-hover:text-anglican-blue-800" />
             <p className="mt-3 font-semibold">{section.title}</p>
             <p className="text-sm text-muted-foreground">{section.description}</p>
           </Link>

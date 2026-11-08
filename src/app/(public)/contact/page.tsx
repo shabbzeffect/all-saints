@@ -26,7 +26,7 @@ export default function ContactPage() {
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12">
           {/* Campus map — authored SVG, no external tiles */}
           <figure className="lg:col-span-7">
-            <svg viewBox="0 0 760 480" role="img" aria-label="Stylised map of the All Saints Mushililie campus" className="w-full rounded-2xl border border-[#1f2a44]/15 bg-[#e9e6dc] [&_g.map-spot]:cursor-pointer [&_g.map-spot_.map-shape]:transition-all [&_g.map-spot:hover_.map-shape]:stroke-[#d9a441] [&_g.map-spot:hover_.map-shape]:stroke-[3] [&_g.map-spot:focus-visible_.map-shape]:stroke-[#d9a441] [&_g.map-spot:focus-visible_.map-shape]:stroke-[3]">
+            <svg viewBox="0 0 760 480" role="img" aria-label="Stylised map of the All Saints Mushililie campus" className="w-full rounded-xl border border-[#1f2a44]/15 bg-[#e9e6dc] [&_g.map-spot]:cursor-pointer [&_g.map-spot_.map-shape]:transition-all [&_g.map-spot:hover_.map-shape]:stroke-[#d9a441] [&_g.map-spot:hover_.map-shape]:stroke-[3] [&_g.map-spot:focus-visible_.map-shape]:stroke-[#d9a441] [&_g.map-spot:focus-visible_.map-shape]:stroke-[3]">
               {/* outer boundary + gate */}
               <rect x="20" y="20" width="720" height="440" rx="10" fill="none" stroke="#1f2a44" strokeOpacity="0.35" strokeWidth="3" strokeDasharray="10 8" />
               <g className="map-spot" tabIndex={0} role="img" aria-label="The Gate — enter here, blue arch, white lettering">

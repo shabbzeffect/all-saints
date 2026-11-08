@@ -10,6 +10,7 @@ import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { formatCurrency } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface PaymentRow {
   id: string
@@ -153,7 +154,7 @@ export function Payments() {
           {!loading && payments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No payments found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading payments…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

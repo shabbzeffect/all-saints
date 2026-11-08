@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Download, FileText } from "lucide-react"
 import { useState, useEffect } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface DocumentRow {
   id: string
@@ -142,7 +143,7 @@ export function Documents() {
           {!loading && documents.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No documents found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading documents…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

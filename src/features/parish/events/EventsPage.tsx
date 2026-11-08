@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface ParishEvent {
   id: string
@@ -138,7 +139,7 @@ export function EventsPage() {
           {!loading && visible.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No events found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading events…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>

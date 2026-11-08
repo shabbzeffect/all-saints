@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { formatCurrency } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface BillingRecord {
   id: string
@@ -186,7 +187,7 @@ export function BoardingFees() {
           {!loading && visible.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No billing records found.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading billing…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
 

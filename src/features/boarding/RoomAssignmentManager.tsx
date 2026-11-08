@@ -10,6 +10,7 @@ import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/config"
 import { useState, useEffect, useCallback } from "react"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface Room {
   id: string
@@ -191,7 +192,7 @@ export function RoomAssignmentManager() {
           {!loading && assignments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No current assignments.</p>
           )}
-          {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading assignments…</p>}
+          {loading && <TableSkeleton columns={6} rows={5} />}
         </CardContent>
       </Card>
     </div>
