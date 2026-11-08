@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
+import Link from "next/link"
+import { UserPlus } from "lucide-react"
 
 interface Applicant {
   id: string
@@ -121,7 +123,7 @@ export function AdmissionsPage() {
             </TableBody>
           </Table>
           {!loading && visible.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">No applicants found.</p>
+            <div className="flex flex-col items-center py-8"><UserPlus className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" /><p className="mt-2 text-sm font-medium text-muted-foreground">No applicants yet</p><Link href="/admissions/apply" className="mt-1 text-xs font-semibold text-anglican-blue-700 hover:underline">Families can apply online � share the link</Link></div>
           )}
           {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading applicants…</p>}
         </CardContent>

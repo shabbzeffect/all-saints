@@ -119,7 +119,7 @@ export default function PublicHome() {
             <span className="text-[#1f2a44]/70">The school teaches. The parish keeps.</span>
           </h2>
           <div className="mt-10 grid gap-6 lg:grid-cols-12">
-            <Link href="/admissions" className="group relative overflow-hidden rounded-2xl bg-[#1f2a44] p-8 text-[#f5f3ed] transition-colors lg:col-span-7">
+            <Link href="/admissions" className="group relative overflow-hidden rounded-2xl bg-[#1f2a44] p-8 text-[#f5f3ed] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(31,42,68,0.65)] lg:col-span-7 focus-ring-dark">
               <GraduationCap className="h-9 w-9 text-[#d9a441]" strokeWidth={1.5} aria-hidden="true" />
               <h3 className="mt-4 font-serif text-2xl font-bold sm:text-3xl">The Academy door</h3>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-[#f5f3ed]/80">
@@ -136,7 +136,7 @@ export default function PublicHome() {
               </span>
             </Link>
 
-            <Link href="/church" className="group relative overflow-hidden rounded-2xl bg-[#1f4d33] p-8 text-[#eef3ea] transition-colors lg:col-span-5">
+            <Link href="/church" className="group relative overflow-hidden rounded-2xl bg-[#1f4d33] p-8 text-[#eef3ea] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(18,51,36,0.7)] lg:col-span-5 focus-ring-dark">
               <Church className="h-9 w-9 text-[#d9a441]" strokeWidth={1.5} aria-hidden="true" />
               <h3 className="mt-4 font-serif text-2xl font-bold sm:text-3xl">The Parish door</h3>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-[#eef3ea]/85">
@@ -198,7 +198,7 @@ export default function PublicHome() {
               ["Can we join the parish too?", "The doors are shared. Sunday worship, Bible study and ministry groups all welcome families — school and parish are one house."],
             ].map(([q, a]) => (
               <details key={q} className="group py-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-lg font-bold text-[#1f2a44]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md px-1 -mx-1 font-serif text-lg font-bold text-[#1f2a44] transition-colors hover:text-[#2a3a5f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]">
                   {q}
                   <span className="text-[#6f5410] transition-transform group-open:rotate-45" aria-hidden="true">+</span>
                 </summary>

@@ -58,13 +58,13 @@ export default function SchoolPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="flex h-40 items-end gap-4">
+            <div className="flex h-44 items-end gap-4">
               {attendance.map((day) => (
-                <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
+                <div key={day.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
                   <span className="text-xs font-medium text-muted-foreground">{day.rate}%</span>
                   <div
                     className="w-full rounded-t-md bg-anglican-blue-600"
-                    style={{ height: `${day.rate}%` }}
+                    style={{ height: `${Math.round((day.rate / 100) * 112)}px` }}
                     aria-hidden="true"
                   />
                   <span className="text-xs font-semibold uppercase text-muted-foreground">{day.day}</span>

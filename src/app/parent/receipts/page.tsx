@@ -5,6 +5,7 @@ import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Download, Receipt } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 interface ReceiptRow {
@@ -95,7 +96,7 @@ export default function ReceiptsPage() {
             </TableBody>
           </Table>
           {!loading && receipts.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">No receipts yet. Pay a fee to get your first receipt.</p>
+            <div className="flex flex-col items-center py-8"><Receipt className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" /><p className="mt-2 text-sm font-medium text-muted-foreground">No receipts yet</p><Link href="/parent/pay-fees" className="mt-1 text-xs font-semibold text-anglican-blue-700 hover:underline">Pay a fee to get your first receipt</Link></div>
           )}
           {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading receipts…</p>}
         </CardContent>

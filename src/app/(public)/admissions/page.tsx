@@ -139,7 +139,7 @@ export default function AdmissionsPage() {
               ["How many places are there per grade?", "Small enough that your child's name is known by Tuesday. We do not run classes of 60 — and never will while we can refuse it."],
             ].map(([q, a]) => (
               <details key={q} className="group py-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-lg font-bold text-[#1f2a44]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md px-1 -mx-1 font-serif text-lg font-bold text-[#1f2a44] transition-colors hover:text-[#2a3a5f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441]">
                   {q}
                   <span className="text-[#6f5410] transition-transform group-open:rotate-45" aria-hidden="true">+</span>
                 </summary>

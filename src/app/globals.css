@@ -58,6 +58,24 @@
   color: #1f2a44;
 }
 
+html {
+  scroll-padding-top: 5rem;
+}
+
+button,
+[role="button"],
+summary {
+  cursor: pointer;
+}
+
+/* Brand focus ring — use on every interactive element */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f3ed];
+}
+.focus-ring-dark {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9a441] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f2a44];
+}
+
 @keyframes ribbon-glow {
   0% { opacity: 0.55; filter: saturate(0.8); }
   35% { opacity: 1; filter: saturate(1.35) brightness(1.12); }

@@ -9,7 +9,8 @@ import { Table, TableHeader, TableRow, TableBody, TableCell, TableHead } from "@
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
+import { Users } from "lucide-react"
 
 interface Student {
   id: string
@@ -118,9 +119,11 @@ export function StudentsPage() {
             </TableBody>
           </Table>
           {!loading && visible.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {searchTerm || grade || status ? "No students match your filters." : "No students yet. Student records will appear here once connected to the student information system."}
-            </p>
+            <div className="flex flex-col items-center py-8">
+              <Users className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" />
+              <p className="mt-2 text-sm font-medium text-muted-foreground">No students found</p>
+              <p className="text-xs text-muted-foreground/70">{searchTerm || grade || status ? "Try clearing a filter." : "Records appear here once the SIS is connected."}</p>
+            </div>
           )}
           {loading && <p className="py-8 text-center text-sm text-muted-foreground">Loading students…</p>}
         </CardContent>

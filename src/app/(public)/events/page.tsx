@@ -1,8 +1,8 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useState } from "react"
-import { MapPin, Clock } from "lucide-react"
+import { MapPin, Clock, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/config"
 
 type Category = "All" | "School" | "Parish" | "Visits"
@@ -90,7 +90,13 @@ export default function EventsPage() {
               </li>
             ))}
           </ul>
-          {visible.length === 0 && <p className="py-10 text-center text-[#1f2a44]/70">Nothing on the board for that category yet — check the gate.</p>}
+          {visible.length === 0 && (
+            <div className="py-12 text-center">
+              <CalendarDays className="mx-auto h-6 w-6 text-[#1f2a44]/40" strokeWidth={1.5} aria-hidden="true" />
+              <p className="mt-2 text-sm font-medium text-[#1f2a44]/70">Nothing on the board for that category</p>
+              <p className="text-xs text-[#1f2a44]/55">The gate board carries this Sunday&rsquo;s truth.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>

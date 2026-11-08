@@ -173,7 +173,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                       href={link.href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 cursor-pointer focus-ring-dark",
                         active
                           ? "bg-anglican-gold-400 text-anglican-blue-950"
                           : "text-anglican-blue-100 hover:bg-white/10 hover:text-white"
@@ -212,7 +212,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           />
           <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl">
             <button
-              className="absolute right-3 top-3 rounded-md p-1.5 text-anglican-blue-200 hover:bg-white/10"
+              className="focus-ring-dark absolute right-3 top-3 rounded-md p-1.5 text-anglican-blue-200 hover:bg-white/10"
               onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
             >
@@ -229,7 +229,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-3">
               <button
-                className="rounded-md p-2 text-foreground hover:bg-accent lg:hidden"
+                className="focus-ring rounded-md p-2 text-foreground hover:bg-accent lg:hidden cursor-pointer transition-colors"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open menu"
               >
@@ -248,7 +248,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <Link
                 href="/admin/notifications"
-                className="relative rounded-full p-2 text-foreground transition-colors hover:bg-accent"
+                className="focus-ring relative rounded-full p-2 text-foreground transition-colors hover:bg-accent"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
@@ -256,7 +256,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
               </Link>
               <Link
                 href="/login"
-                className="flex items-center gap-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="focus-ring flex items-center gap-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label="Sign out"
                 title="Sign out"
               >

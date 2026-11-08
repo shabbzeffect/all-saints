@@ -21,7 +21,7 @@ export const PUBLIC_LINKS = [
 
 export function Wordmark({ light = false }: { light?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label="SAINTS — All Saints Mushililie home">
+    <Link href="/" className="focus-ring flex items-center gap-2.5 rounded-md" aria-label="SAINTS — All Saints Mushililie home">
       <svg viewBox="0 0 40 40" className="h-9 w-9 shrink-0" role="img" aria-label="All Saints Mushililie crest">
         <circle cx="20" cy="20" r="19" fill={light ? "#d9a441" : "#1f2a44"} stroke={light ? "#1f2a44" : "#d9a441"} strokeWidth="2" />
         <path d="M20 7v26M11 15h18" stroke={light ? "#1f2a44" : "#f5f3ed"} strokeWidth="3.2" strokeLinecap="round" />
@@ -56,7 +56,7 @@ export function SiteNav() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-[#1f2a44]",
+                  "focus-ring rounded-sm text-sm font-medium transition-colors hover:text-[#1f2a44]",
                   active ? "text-[#1f2a44] underline underline-offset-4 decoration-[#d9a441] decoration-2" : "text-[#1f2a44]/70"
                 )}
               >
@@ -66,14 +66,14 @@ export function SiteNav() {
           })}
           <Link
             href="/login"
-            className="rounded-md border border-[#1f2a44] px-3.5 py-1.5 text-sm font-semibold text-[#1f2a44] transition-colors hover:bg-[#1f2a44] hover:text-[#f5f3ed]"
+            className="focus-ring rounded-md border border-[#1f2a44] px-3.5 py-1.5 text-sm font-semibold text-[#1f2a44] transition-colors hover:bg-[#1f2a44] hover:text-[#f5f3ed]"
           >
             Portal login
           </Link>
         </nav>
 
         <button
-          className="rounded-md p-2 text-[#1f2a44] hover:bg-[#1f2a44]/5 lg:hidden"
+          className="focus-ring rounded-md p-2 text-[#1f2a44] hover:bg-[#1f2a44]/5 lg:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}

@@ -63,7 +63,7 @@ export function ParentDashboard({ students, onNavigate }: ParentDashboardProps) 
           <button
             key={action.href}
             onClick={() => onNavigate(action.href)}
-            className="group rounded-xl border border-border-dark/30 bg-card p-5 text-left transition-colors hover:border-anglican-blue-400 hover:bg-anglican-blue-50/40"
+            className="group rounded-xl border border-border bg-card p-5 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-anglican-blue-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-anglican-blue-500"
           >
             <action.icon className="h-6 w-6 text-anglican-blue-700 transition-transform group-hover:-translate-y-0.5" />
             <p className="mt-3 font-semibold">{action.title}</p>

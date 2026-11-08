@@ -36,8 +36,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
     placeholder={placeholder}
     onChange={(e) => onValueChange?.(e.target.value) || props.onChange?.(e)}
     className={cn(
-      "block w-full rounded-md border border-border-dark/30 rounded-md bg-angle dark:bg-angle-dark py-2 px-3 leading-tight text-angle-dark placeholder-angle/40 focus:ring-2 focus:ring-ring focus-ring-offset-2 disabled:opacity-50 disabled:pointer-events-none dark:text-angle-100 transition-colors appearance-none",
-      error && "border-destructive focus:ring-destructive",
+      "block w-full rounded-md border border-input bg-background py-2 px-3 leading-tight text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:border-[#d9a441] focus-visible:ring-2 focus-visible:ring-[#d9a441]/40 disabled:opacity-50 disabled:pointer-events-none appearance-none",
+      error && "border-destructive focus-visible:ring-destructive",
       className
     )}
     data-testid={dataTestId}
