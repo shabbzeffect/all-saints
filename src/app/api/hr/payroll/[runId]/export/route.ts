@@ -53,6 +53,7 @@ export async function GET(
         "NSSF (employee)",
         "SHIF",
         "Housing Levy",
+        "Loan repayments",
         "Unpaid leave",
         "Total deductions",
         "Net pay",
@@ -71,6 +72,7 @@ export async function GET(
 
       for (const slip of payslips) {
         const unpaid = Math.abs(sumLine(slip.lines, "UNPAID_LEAVE"))
+        const loans = money(sumLine(slip.lines, "LOAN", "DEDUCTION"))
         rows.push([
           slip.staff.user.name ?? "Staff",
           slip.staff.user.email ?? "",
@@ -82,6 +84,7 @@ export async function GET(
           money(sumLine(slip.lines, "NSSF", "DEDUCTION")),
           money(sumLine(slip.lines, "SHIF")),
           money(sumLine(slip.lines, "HOUSING_LEVY", "DEDUCTION")),
+          loans,
           unpaid,
           slip.totalDeductions,
           slip.netSalary,
@@ -100,6 +103,7 @@ export async function GET(
         money(sumOn(payslips, (s) => sumLine(s.lines, "NSSF", "DEDUCTION"))),
         money(sumOn(payslips, (s) => sumLine(s.lines, "SHIF"))),
         money(sumOn(payslips, (s) => sumLine(s.lines, "HOUSING_LEVY", "DEDUCTION"))),
+        money(sumOn(payslips, (s) => sumLine(s.lines, "LOAN", "DEDUCTION"))),
         money(sumOn(payslips, (s) => Math.abs(sumLine(s.lines, "UNPAID_LEAVE")))),
         money(sumOn(payslips, (s) => s.totalDeductions)),
         money(sumOn(payslips, (s) => s.netSalary)),

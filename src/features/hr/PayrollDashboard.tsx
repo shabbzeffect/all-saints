@@ -226,13 +226,22 @@ export function PayrollDashboard() {
             Kenya statutory payroll — PAYE, NSSF, SHIF and Affordable Housing Levy. Create a run, review payslips, then finalize.
           </p>
         </div>
-        <Link
-          href="/hr/payroll/settings"
-          className="focus-ring inline-flex h-9 w-fit items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          <Settings className="h-4 w-4" aria-hidden="true" />
-          Statutory settings
-        </Link>
+        <div className="flex items-end gap-2">
+          <Link
+            href="/hr/payroll/loans"
+            className="focus-ring inline-flex h-9 w-fit items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Banknote className="h-4 w-4" aria-hidden="true" />
+            Loans
+          </Link>
+          <Link
+            href="/hr/payroll/settings"
+            className="focus-ring inline-flex h-9 w-fit items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Settings className="h-4 w-4" aria-hidden="true" />
+            Statutory settings
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -471,7 +480,7 @@ export function PayrollDashboard() {
             </Table>
             {detail.status === "DRAFT" && (
               <p className="mt-2 text-xs text-muted-foreground">
-                One-off allowances: enter amounts above and click <strong>Recompute</strong>. Approved UNPAID leave overlapping the period is prorated automatically (Basic ÷ 30 per day).
+                One-off allowances: enter amounts above and click <strong>Recompute</strong>. Approved UNPAID leave (Basic ÷ 30 per day) and active salary loans are applied automatically.
               </p>
             )}
           </CardContent>

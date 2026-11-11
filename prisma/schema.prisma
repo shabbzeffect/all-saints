@@ -691,6 +691,7 @@ model Institution {
   leaveTypes           LeaveType[]             @relation("InstitutionLeaveTypes")
   statutoryDeductions  StatutoryDeduction[]    @relation("InstitutionStatutoryDeductions")
   payrollRuns          PayrollRun[]            @relation("InstitutionPayrollRuns")
+  salaryLoans          SalaryLoan[]            @relation("InstitutionSalaryLoans")
   consentPreferences   ConsentPreference[]     @relation("InstitutionConsentPreferences")
   dormitories          Dormitory[]             @relation("InstitutionDormitories")
   boardingFees         BoardingFee[]           @relation("InstitutionBoardingFees")
@@ -1300,6 +1301,7 @@ model Staff {
   contracts     Contract[]
   leaveRequests LeaveRequest[]
   payslips      Payslip[]
+  loans         SalaryLoan[]
 
   @@unique([institutionId, userId])
   @@index([institutionId])
@@ -1478,6 +1480,7 @@ model Payslip {
   staff Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
   run   PayrollRun    @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
   lines PayslipLine[]
+  loanRepayments SalaryLoanRepayment[]
 
   @@unique([payrollRunId, staffId])
   @@index([staffId])
@@ -1499,6 +1502,47 @@ model PayslipLine {
 
   @@index([payslipId])
   @@map("payslip_lines")
+}
+
+model SalaryLoan {
+  id                 String   @id @default(cuid())
+  institutionId      String
+  staffId            String
+  description        String // e.g., "SACCO loan", "Emergency salary advance"
+  principal          Float
+  monthlyInstallment Float
+  status             String   @default("ACTIVE") // ACTIVE, SETTLED, CANCELLED
+  startPeriod        String // e.g., "2026-11" — first period a deduction applies
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  staff       Staff                @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  institution Institution          @relation("InstitutionSalaryLoans", fields: [institutionId], references: [id], onDelete: Cascade)
+  repayments  SalaryLoanRepayment[]
+
+  @@index([staffId])
+  @@index([institutionId])
+  @@index([status])
+  @@map("salary_loans")
+}
+
+model SalaryLoanRepayment {
+  id        String   @id @default(cuid())
+  loanId    String
+  payslipId String // cascade: recompute of a DRAFT run wipes + recreates its repayments
+  amount    Float
+  period    String // "2026-11"
+  createdAt DateTime @default(now())
+
+  loan    SalaryLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  payslip Payslip    @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+
+  // At most one repayment per loan per period
+  @@unique([loanId, period])
+  @@index([payslipId])
+  @@index([loanId])
+  @@map("salary_loan_repayments")
 }
 
 model Contract {

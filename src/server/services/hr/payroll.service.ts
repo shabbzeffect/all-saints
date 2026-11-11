@@ -12,6 +12,7 @@ import {
   configFromDatabase,
   type KenyaStatutoryConfig,
 } from "@/lib/payroll/kenya"
+import { installmentDue, loanOutstanding } from "@/lib/payroll/loans"
 
 // ============================================================================
 // INSTITUTION RESOLUTION
@@ -342,6 +343,39 @@ export async function computePayrollRun({
     unpaidByStaff.set(r.staffId, current)
   }
 
+  // Salary loans: outstanding balance = principal − repayments recorded against
+  // FINAL payslips (DRAFT recomputes self-correct as their repayments cascade-delete)
+  const activeLoans = computed.length
+    ? await prisma.salaryLoan.findMany({
+        where: {
+          institutionId,
+          status: "ACTIVE",
+          startPeriod: { lte: run.period },
+          staffId: { in: computed.map((c) => c.staff.id) },
+        },
+        orderBy: [{ startPeriod: "asc" }, { createdAt: "asc" }],
+        include: {
+          repayments: {
+            where: { payslip: { status: "FINAL" } },
+            select: { amount: true },
+          },
+        },
+      })
+    : []
+
+  const loansByStaff = new Map<string, typeof activeLoans>()
+  for (const loan of activeLoans) {
+    const due = installmentDue({
+      principal: loan.principal,
+      monthlyInstallment: loan.monthlyInstallment,
+      repayments: loan.repayments.map((r) => r.amount),
+    })
+    if (due <= 0) continue
+    const list = loansByStaff.get(loan.staffId) ?? []
+    list.push(loan)
+    loansByStaff.set(loan.staffId, list)
+  }
+
   // Sequential per-record writes; generous timeout for serverless Postgres latency
   await prisma.$transaction(
     async (tx) => {
@@ -354,6 +388,23 @@ export async function computePayrollRun({
       const unpaidDays = Math.min(unpaid?.days ?? 0, 31)
       const preTax = unpaidDays > 0 ? Math.round((contract!.basicSalary / 30) * unpaidDays * 100) / 100 : 0
       const b = calculatePayroll(contract!.basicSalary, allowances, config, preTax)
+
+      // Salary loans — post-tax deductions capped so net pay never goes negative
+      const staffLoans = loansByStaff.get(s.id) ?? []
+      let remainingNet = b.netSalary
+      const loanDeductions = staffLoans.map((loan) => {
+        const due = installmentDue({
+          principal: loan.principal,
+          monthlyInstallment: loan.monthlyInstallment,
+          repayments: loan.repayments.map((r) => r.amount),
+        })
+        const taken = Math.round(Math.min(due, Math.max(0, remainingNet)) * 100) / 100
+        remainingNet = Math.round((remainingNet - taken) * 100) / 100
+        return { loan, amount: taken, capped: taken < due }
+      })
+      const loanTotal = loanDeductions.reduce((sum, d) => sum + d.amount, 0)
+      const totalDeductions = Math.round((b.totalDeductions + loanTotal) * 100) / 100
+      const netSalary = Math.round((b.netSalary - loanTotal) * 100) / 100
 
       const lines = [
         { description: "Basic Salary", amount: b.basicSalary, type: "ALLOWANCE", taxCategory: "BASIC" },
@@ -374,6 +425,14 @@ export async function computePayrollRun({
         { description: "NSSF (Employee)", amount: b.nssfEmployee, type: "DEDUCTION", taxCategory: "NSSF" },
         { description: "SHIF", amount: b.shif, type: "DEDUCTION", taxCategory: "SHIF" },
         { description: "Housing Levy", amount: b.housingLevy, type: "DEDUCTION", taxCategory: "HOUSING_LEVY" },
+        ...loanDeductions
+          .filter((d) => d.amount > 0)
+          .map((d) => ({
+            description: `Loan — ${d.loan.description}`,
+            amount: d.amount,
+            type: "DEDUCTION",
+            taxCategory: "LOAN",
+          })),
         { description: "NSSF (Employer)", amount: b.nssfEmployer, type: "EMPLOYER", taxCategory: "NSSF" },
         { description: "Housing Levy (Employer)", amount: b.housingLevyEmployer, type: "EMPLOYER", taxCategory: "HOUSING_LEVY" },
       ]
@@ -381,7 +440,14 @@ export async function computePayrollRun({
       const adjustmentNotes = notesByStaff.get(s.id)
       const leaveNotes =
         preTax > 0 ? `Unpaid leave: ${unpaidDays} day(s) (${unpaid?.types.join(", ")})` : null
-      const notes = [adjustmentNotes, leaveNotes].filter(Boolean).join(" · ")
+      const loanNotes =
+        loanTotal > 0
+          ? `Loans deducted: ${loanDeductions
+              .filter((d) => d.amount > 0)
+              .map((d) => `${d.loan.description} KES ${d.amount.toLocaleString("en-KE")}`)
+              .join(", ")}${loanDeductions.some((d) => d.capped) ? " (capped to net pay)" : ""}`
+          : null
+      const notes = [adjustmentNotes, leaveNotes, loanNotes].filter(Boolean).join(" · ")
 
       await tx.payslip.create({
         data: {
@@ -391,14 +457,19 @@ export async function computePayrollRun({
           periodEnd: run.periodEnd,
           basicSalary: b.basicSalary,
           grossSalary: b.grossSalary,
-          totalDeductions: b.totalDeductions,
-          netSalary: b.netSalary,
+          totalDeductions,
+          netSalary,
           employerCost: Math.round((b.nssfEmployer + b.housingLevyEmployer) * 100) / 100,
           payPeriod: "MONTHLY",
           payDate,
           status: "DRAFT",
           notes: notes || null,
           lines: { create: lines },
+          loanRepayments: {
+            create: loanDeductions
+              .filter((d) => d.amount > 0)
+              .map((d) => ({ loanId: d.loan.id, amount: d.amount, period: run.period })),
+          },
         },
       })
     }
@@ -462,6 +533,22 @@ export async function finalizePayrollRun({
       where: { id: run.id },
       data: { status: "COMPLETED", finalizedAt: new Date() },
     })
+
+    // Auto-settle loans fully repaid by this run (sum of FINAL repayments >= principal)
+    const loanCandidates = await tx.salaryLoan.findMany({
+      where: { institutionId, status: "ACTIVE" },
+      include: {
+        repayments: { where: { payslip: { status: "FINAL" } }, select: { amount: true } },
+      },
+    })
+    let settled = 0
+    for (const loan of loanCandidates) {
+      const paid = loan.repayments.reduce((sum, r) => sum + r.amount, 0)
+      if (paid >= loan.principal) {
+        await tx.salaryLoan.update({ where: { id: loan.id }, data: { status: "SETTLED" } })
+        settled += 1
+      }
+    }
     await tx.auditEvent.create({
       data: {
         actorId: finalizeActor,
@@ -469,7 +556,7 @@ export async function finalizePayrollRun({
         targetType: "PayrollRun",
         targetName: run.period,
         institutionId,
-        metadata: { action: "payroll_run_finalized", payrollRunId: run.id, period: run.period, staffCount: count },
+        metadata: { action: "payroll_run_finalized", payrollRunId: run.id, period: run.period, staffCount: count, loansAutoSettled: settled },
       },
     })
   }, { maxWait: 10_000, timeout: 30_000 })
@@ -585,18 +672,28 @@ export async function getPayslip({
 
 /** Summary for HR dashboards: active staff, estimated monthly payroll, latest runs */
 export async function getPayrollSummary(institutionId: string) {
-  const [activeStaff, contractSum, latestCompleted, draftRuns] = await Promise.all([
-    prisma.staff.count({ where: { institutionId, status: "ACTIVE" } }),
-    prisma.contract.aggregate({
-      _sum: { basicSalary: true },
-      where: { isActive: true, staff: { institutionId, status: "ACTIVE" } },
-    }),
-    prisma.payrollRun.findFirst({
-      where: { institutionId, status: "COMPLETED" },
-      orderBy: { period: "desc" },
-    }),
-    prisma.payrollRun.count({ where: { institutionId, status: "DRAFT" } }),
-  ])
+  const [activeStaff, contractSum, latestCompleted, draftRuns, activeLoans, finalLoanPayments] =
+    await Promise.all([
+      prisma.staff.count({ where: { institutionId, status: "ACTIVE" } }),
+      prisma.contract.aggregate({
+        _sum: { basicSalary: true },
+        where: { isActive: true, staff: { institutionId, status: "ACTIVE" } },
+      }),
+      prisma.payrollRun.findFirst({
+        where: { institutionId, status: "COMPLETED" },
+        orderBy: { period: "desc" },
+      }),
+      prisma.payrollRun.count({ where: { institutionId, status: "DRAFT" } }),
+      prisma.salaryLoan.aggregate({
+        _sum: { principal: true },
+        _count: { _all: true },
+        where: { institutionId, status: "ACTIVE" },
+      }),
+      prisma.salaryLoanRepayment.aggregate({
+        _sum: { amount: true },
+        where: { loan: { institutionId, status: "ACTIVE" }, payslip: { status: "FINAL" } },
+      }),
+    ])
 
   return {
     activeStaff,
@@ -613,6 +710,11 @@ export async function getPayrollSummary(institutionId: string) {
         }
       : null,
     draftRuns,
+    activeLoans: activeLoans._count._all,
+    outstandingLoans: Math.max(
+      0,
+      round2((activeLoans._sum.principal ?? 0) - (finalLoanPayments._sum.amount ?? 0))
+    ),
   }
 }
 
@@ -752,4 +854,206 @@ export async function getAnnualTaxReport(institutionId: string, year: number) {
   )
 
   return { year, rows, totals, generatedAt: new Date().toISOString() }
+}
+
+// ============================================================================
+// SALARY LOANS & ADVANCES
+// ============================================================================
+
+/** Minimal staff list for loan forms (id, name, designation, current basic) */
+export async function listStaffForLoans(institutionId: string) {
+  const staff = await prisma.staff.findMany({
+    where: { institutionId, status: "ACTIVE" },
+    include: {
+      user: { select: { name: true, email: true } },
+      role: { select: { name: true } },
+      contracts: { where: { isActive: true }, orderBy: { startDate: "desc" }, take: 1 },
+    },
+    orderBy: { user: { name: "asc" } },
+  })
+  return staff.map((s) => ({
+    id: s.id,
+    name: s.user?.name ?? "Staff",
+    email: s.user?.email ?? null,
+    role: s.role?.name ?? null,
+    basicSalary: s.contracts[0]?.basicSalary ?? 0,
+  }))
+}
+
+const loanInclude = {
+  staff: {
+    include: {
+      user: { select: { name: true, email: true } },
+      role: { select: { name: true } },
+    },
+  },
+} satisfies Prisma.SalaryLoanInclude
+
+/** List loans with derived outstanding balance (FINAL repayments only) */
+export async function listSalaryLoans({
+  institutionId,
+  staffId,
+  status,
+}: {
+  institutionId: string
+  staffId?: string | null
+  status?: string | null
+}) {
+  const loans = await prisma.salaryLoan.findMany({
+    where: {
+      institutionId,
+      ...(staffId ? { staffId } : {}),
+      ...(status ? { status } : {}),
+    },
+    include: {
+      ...loanInclude,
+      repayments: {
+        where: { payslip: { status: "FINAL" } },
+        select: { amount: true },
+      },
+    },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+  })
+
+  return loans.map(({ repayments, ...loan }) => ({
+    ...loan,
+    outstanding: loanOutstanding({
+      principal: loan.principal,
+      monthlyInstallment: loan.monthlyInstallment,
+      repayments: repayments.map((r) => r.amount),
+    }),
+  }))
+}
+
+/** Loan detail with repayment history (all statuses, labelled by payslip status) */
+export async function getSalaryLoan({
+  id,
+  institutionId,
+}: {
+  id: string
+  institutionId: string
+}) {
+  const loan = await prisma.salaryLoan.findFirst({
+    where: { id, institutionId },
+    include: {
+      ...loanInclude,
+      repayments: {
+        orderBy: { createdAt: "desc" },
+        include: { payslip: { select: { id: true, status: true, periodStart: true } } },
+      },
+    },
+  })
+  if (!loan) throw new Error("Loan not found")
+
+  const finalRepaid = loan.repayments
+    .filter((r) => r.payslip.status === "FINAL")
+    .reduce((sum, r) => sum + r.amount, 0)
+
+  return {
+    ...loan,
+    outstanding: round2(Math.max(0, loan.principal - finalRepaid)),
+  }
+}
+
+export interface CreateSalaryLoanInput {
+  institutionId?: string | null
+  staffId: string
+  description: string
+  principal: number
+  monthlyInstallment: number
+  startPeriod?: string // defaults to current period
+  notes?: string
+  actorId?: string
+}
+
+export async function createSalaryLoan(input: CreateSalaryLoanInput) {
+  const institutionId = await resolveInstitutionId(input.institutionId)
+  const staff = await prisma.staff.findFirst({ where: { id: input.staffId, institutionId } })
+  if (!staff) throw new Error("Staff member not found in this institution")
+
+  const principal = Math.round(input.principal * 100) / 100
+  const monthlyInstallment = Math.round(input.monthlyInstallment * 100) / 100
+  if (!(principal > 0)) throw new Error("Principal must be greater than 0")
+  if (!(monthlyInstallment > 0)) throw new Error("Monthly installment must be greater than 0")
+  if (monthlyInstallment > principal) throw new Error("Installment cannot exceed the principal")
+  const description = input.description.trim()
+  if (!description) throw new Error("Description is required")
+
+  const now = new Date()
+  const startPeriod =
+    input.startPeriod ??
+    String(now.getFullYear()) + "-" + String(now.getMonth() + 1).padStart(2, "0")
+
+  const actorId = await resolveAuditActor(input.actorId)
+  const loan = await prisma.salaryLoan.create({
+    data: {
+      institutionId,
+      staffId: staff.id,
+      description,
+      principal,
+      monthlyInstallment,
+      startPeriod,
+      notes: input.notes?.trim() || null,
+    },
+  })
+
+  await prisma.auditEvent.create({
+    data: {
+      actorId,
+      action: "CREATE",
+      targetType: "SalaryLoan",
+      targetName: description,
+      institutionId,
+      metadata: {
+        action: "salary_loan_created",
+        salaryLoanId: loan.id,
+        staffId: staff.id,
+        principal,
+        monthlyInstallment,
+        startPeriod,
+      },
+    },
+  })
+
+  return loan
+}
+
+/** Cancel (stop future deductions) or manually settle (only when fully repaid) */
+export async function updateSalaryLoanStatus({
+  id,
+  institutionId,
+  action,
+  actorId,
+}: {
+  id: string
+  institutionId: string
+  action: "cancel" | "settle"
+  actorId?: string
+}) {
+  const loan = await getSalaryLoan({ id, institutionId })
+  if (loan.status === "CANCELLED" && action === "cancel") return loan
+  if (loan.status === "SETTLED") {
+    if (action === "settle") return loan
+    throw new Error("A settled loan cannot be cancelled")
+  }
+  if (action === "settle" && loan.outstanding > 0) {
+    throw new Error(`Loan still has an outstanding balance of KES ${loan.outstanding.toLocaleString("en-KE")}`)
+  }
+
+  const nextStatus = action === "cancel" ? "CANCELLED" : "SETTLED"
+  const resolvedActor = await resolveAuditActor(actorId)
+  const updated = await prisma.salaryLoan.update({ where: { id: loan.id }, data: { status: nextStatus } })
+
+  await prisma.auditEvent.create({
+    data: {
+      actorId: resolvedActor,
+      action: "UPDATE",
+      targetType: "SalaryLoan",
+      targetName: loan.description,
+      institutionId,
+      metadata: { action: `salary_loan_${nextStatus.toLowerCase()}`, salaryLoanId: loan.id },
+    },
+  })
+
+  return { ...updated, outstanding: loan.outstanding }
 }

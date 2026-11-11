@@ -1,4 +1,4 @@
-/* Table.tsx
+﻿/* Table.tsx
  * Base table component for SaintsHub
  * Used across dashboards for displaying structured data
  */
@@ -20,6 +20,8 @@ interface TableRowProps {
 interface TableCellProps {
   className?: string
   children?: React.ReactNode
+  colSpan?: number
+  rowSpan?: number
 }
 
 export const TableHead = ({ className, children }: TableCellProps) => {
@@ -61,3 +63,4 @@ export const Table = ({ children, className }: { children: React.ReactNode; clas
 }
 
 Table.displayName = "Table"
+
