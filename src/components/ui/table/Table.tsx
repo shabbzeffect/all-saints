@@ -22,6 +22,7 @@ interface TableCellProps {
   children?: React.ReactNode
   colSpan?: number
   rowSpan?: number
+  title?: string
 }
 
 export const TableHead = ({ className, children }: TableCellProps) => {
