@@ -1289,6 +1289,10 @@ model Staff {
   dateOfBirth      DateTime?
   phone            String // +254 format
   address          String?
+  bankName         String?
+  bankBranch       String?
+  bankAccount      String? // account number
+  bankCode         String? // bank clearing/SWIFT code
   emergencyContact EmergencyContact[]
   emergencyPhone   String?
   photoUrl         String?
@@ -2424,3 +2428,4 @@ model Transaction {
 
 // ============================================================================
 // END OF SCHEMA
+

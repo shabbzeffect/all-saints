@@ -14,7 +14,7 @@ import { Loader2, X, Banknote, Users, CalendarClock, FileText } from "lucide-rea
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/config"
-import { Settings, FileDown } from "lucide-react"
+import { Settings, FileDown, Building2 } from "lucide-react"
 import { PayslipDocument } from "./PayslipDocument"
 
 interface PayrollRunSummary {
@@ -218,6 +218,13 @@ export function PayrollDashboard() {
         </div>
         <div className="flex items-end gap-2">
           <Link
+            href="/hr/bank-details"
+            className="focus-ring inline-flex h-9 w-fit items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Building2 className="h-4 w-4" aria-hidden="true" />
+            Bank details
+          </Link>
+          <Link
             href="/hr/payroll/loans"
             className="focus-ring inline-flex h-9 w-fit items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
           >
@@ -403,6 +410,12 @@ export function PayrollDashboard() {
                 <FileDown className="mr-1 h-4 w-4" aria-hidden="true" />
                 Remittance CSV
               </Button>
+              {detail.status === "COMPLETED" && (
+                <Button variant="outline" size="sm" onClick={() => { window.location.href = `/api/hr/payroll/${detail.id}/export?format=bank` }}>
+                  <FileDown className="mr-1 h-4 w-4" aria-hidden="true" />
+                  Bank CSV
+                </Button>
+              )}
               {detail.status === "DRAFT" && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => runAction(detail.id, "compute")} disabled={actionBusy}>
