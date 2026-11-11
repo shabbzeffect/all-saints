@@ -1,12 +1,13 @@
 /* HR Payroll API - SaintsHub
- * GET  /api/hr/payroll            -> list runs (?institutionId=&limit=) | summary (?summary=1)
- * POST /api/hr/payroll            -> create run for month/year (+ compute by default)
+ * GET  /api/hr/payroll            -> list runs (?limit=) | summary (?summary=1)   [hr:payroll:read]
+ * POST /api/hr/payroll            -> create run for month/year (+ compute)        [hr:payroll:run]
+ * Institution scoping comes from the signed-in user's ACTIVE membership.
  */
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { requirePayroll } from "@/server/payroll-access"
 import {
-  resolveInstitutionId,
   listPayrollRuns,
   getPayrollSummary,
   createPayrollRun,
@@ -16,9 +17,12 @@ import {
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
 
     if (searchParams.get("summary") === "1") {
       const summary = await getPayrollSummary(institutionId)
@@ -35,26 +39,27 @@ export async function GET(request: Request) {
 }
 
 const createRunSchema = z.object({
-  institutionId: z.string().optional(),
   month: z.number().int().min(1).max(12),
   year: z.number().int().min(2000).max(2100),
   payDate: z.string().datetime().optional(),
   notes: z.string().max(500).optional(),
-  createdById: z.string().optional(),
   compute: z.boolean().optional(), // default true
 })
 
 export async function POST(request: Request) {
+  const gate = await requirePayroll("hr:payroll:run")
+  if ("error" in gate) return gate.error
+  const { institutionId, userId } = gate.access
+
   try {
     const body = createRunSchema.parse(await request.json())
-    const institutionId = await resolveInstitutionId(body.institutionId)
 
     const run = await createPayrollRun({
       institutionId,
       month: body.month,
       year: body.year,
       payDate: body.payDate ? new Date(body.payDate) : undefined,
-      createdById: body.createdById,
+      createdById: userId,
       notes: body.notes,
     })
 

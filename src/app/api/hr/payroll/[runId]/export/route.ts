@@ -5,7 +5,8 @@
 
 import { NextResponse } from "next/server"
 import { prisma } from "@/server/db"
-import { resolveInstitutionId, getPayrollRun } from "@/server/services/hr/payroll.service"
+import { requirePayroll } from "@/server/payroll-access"
+import { getPayrollRun } from "@/server/services/hr/payroll.service"
 import { toCsv, csvResponse } from "@/lib/csv"
 
 export const dynamic = "force-dynamic"
@@ -25,10 +26,13 @@ export async function GET(
   request: Request,
   { params }: { params: { runId: string } }
 ) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
     const { searchParams } = new URL(request.url)
     const format = searchParams.get("format") === "remittance" ? "remittance" : "register"
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
 
     const [run, institution] = await Promise.all([
       getPayrollRun({ runId: params.runId, institutionId }),

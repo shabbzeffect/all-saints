@@ -1,12 +1,13 @@
 /* HR Payroll Run API - SaintsHub
- * GET   /api/hr/payroll/[runId]  -> run detail with payslips
- * PATCH /api/hr/payroll/[runId]  -> { action: "compute" | "finalize" | "cancel" }
+ * GET   /api/hr/payroll/[runId]  -> run detail with payslips                 [hr:payroll:read]
+ * PATCH /api/hr/payroll/[runId]  -> { action: "compute"|"cancel" (run) | "finalize" (finalize) }
+ * Maker-checker: the user who created a run cannot finalize it.
  */
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { requirePayroll } from "@/server/payroll-access"
 import {
-  resolveInstitutionId,
   getPayrollRun,
   computePayrollRun,
   finalizePayrollRun,
@@ -19,9 +20,11 @@ export async function GET(
   request: Request,
   { params }: { params: { runId: string } }
 ) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const run = await getPayrollRun({ runId: params.runId, institutionId })
     return NextResponse.json({ success: true, data: run })
   } catch (error: any) {
@@ -31,9 +34,7 @@ export async function GET(
 }
 
 const patchSchema = z.object({
-  institutionId: z.string().optional(),
   action: z.enum(["compute", "finalize", "cancel"]),
-  actorId: z.string().optional(),
   adjustments: z
     .array(z.object({ staffId: z.string(), allowances: z.number().min(0), notes: z.string().max(200).optional() }))
     .optional(),
@@ -43,10 +44,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: { runId: string } }
 ) {
+  let body: z.infer<typeof patchSchema>
   try {
-    const body = patchSchema.parse(await request.json())
-    const institutionId = await resolveInstitutionId(body.institutionId)
+    body = patchSchema.parse(await request.json())
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 })
+  }
 
+  const permission = body.action === "finalize" ? "hr:payroll:finalize" : "hr:payroll:run"
+  const gate = await requirePayroll(permission)
+  if ("error" in gate) return gate.error
+  const { institutionId, userId } = gate.access
+
+  try {
     let data
     switch (body.action) {
       case "compute":
@@ -60,25 +70,24 @@ export async function PATCH(
         data = await finalizePayrollRun({
           runId: params.runId,
           institutionId,
-          finalizedById: body.actorId,
+          finalizedById: userId,
         })
         break
       case "cancel":
         data = await cancelPayrollRun({
           runId: params.runId,
           institutionId,
-          actorId: body.actorId,
+          actorId: userId,
         })
         break
     }
 
-    return NextResponse.json({ success: true, data, message: `Run ${body.action}d` })
+    const pastTense = body.action === "compute" ? "computed" : body.action === "finalize" ? "finalized" : "cancelled"
+    return NextResponse.json({ success: true, data, message: `Run ${pastTense}` })
   } catch (error: any) {
-    if (error?.name === "ZodError") {
-      return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 })
-    }
     const msg = error?.message ?? "Failed to update payroll run"
-    const status = msg.includes("not found") ? 404 : msg.includes("Cannot") ? 409 : 400
+    const lowered = msg.toLowerCase()
+    const status = msg.includes("not found") ? 404 : lowered.includes("cannot") || lowered.includes("maker-checker") ? 409 : 400
     return NextResponse.json({ success: false, error: msg }, { status })
   }
 }

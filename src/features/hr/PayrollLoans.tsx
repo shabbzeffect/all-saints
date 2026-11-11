@@ -74,14 +74,20 @@ export function PayrollLoans() {
     setLoading(true)
     try {
       const [loansRes, staffRes] = await Promise.all([
-        fetch("/api/hr/payroll/loans", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
-        fetch("/api/hr/payroll/staff", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/hr/payroll/loans", { cache: "no-store" }),
+        fetch("/api/hr/payroll/staff", { cache: "no-store" }),
       ])
-      setLoans(loansRes?.data ?? [])
-      setStaff(staffRes?.data ?? [])
+      const loansBody = await loansRes.json().catch(() => null)
+      const staffBody = await staffRes.json().catch(() => null)
+      if (!loansRes.ok) {
+        setMessage({ tone: "error", text: loansBody?.error ?? "You do not have access to payroll loans" })
+      }
+      setLoans(loansBody?.data ?? [])
+      setStaff(staffBody?.data ?? [])
     } catch {
       setLoans([])
       setStaff([])
+      setMessage({ tone: "error", text: "Could not load loans" })
     } finally {
       setLoading(false)
     }

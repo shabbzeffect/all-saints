@@ -108,14 +108,20 @@ export function PayrollDashboard() {
     setLoading(true)
     try {
       const [runsRes, summaryRes] = await Promise.all([
-        fetch("/api/hr/payroll", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
-        fetch("/api/hr/payroll?summary=1", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/hr/payroll", { cache: "no-store" }),
+        fetch("/api/hr/payroll?summary=1", { cache: "no-store" }),
       ])
-      setRuns(runsRes?.data ?? [])
-      setHrSummary(summaryRes?.data ?? null)
+      const runsBody = await runsRes.json().catch(() => null)
+      const summaryBody = await summaryRes.json().catch(() => null)
+      if (!runsRes.ok) {
+        setMessage({ tone: "error", text: runsBody?.error ?? "You do not have access to payroll" })
+      }
+      setRuns(runsBody?.data ?? [])
+      setHrSummary(summaryBody?.data ?? null)
     } catch {
       setRuns([])
       setHrSummary(null)
+      setMessage({ tone: "error", text: "Could not load payroll data" })
     } finally {
       setLoading(false)
     }

@@ -3,14 +3,17 @@
  */
 
 import { NextResponse } from "next/server"
-import { resolveInstitutionId, listStaffForLoans } from "@/server/services/hr/payroll.service"
+import { requirePayroll } from "@/server/payroll-access"
+import { listStaffForLoans } from "@/server/services/hr/payroll.service"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const staff = await listStaffForLoans(institutionId)
     return NextResponse.json({ success: true, data: staff })
   } catch (error: any) {

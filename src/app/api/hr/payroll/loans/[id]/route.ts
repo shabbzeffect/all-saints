@@ -5,8 +5,8 @@
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { requirePayroll } from "@/server/payroll-access"
 import {
-  resolveInstitutionId,
   getSalaryLoan,
   updateSalaryLoanStatus,
 } from "@/server/services/hr/payroll.service"
@@ -17,9 +17,11 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const loan = await getSalaryLoan({ id: params.id, institutionId })
     return NextResponse.json({ success: true, data: loan })
   } catch (error: any) {
@@ -29,23 +31,30 @@ export async function GET(
 }
 
 const patchSchema = z.object({
-  institutionId: z.string().optional(),
   action: z.enum(["cancel", "settle"]),
-  actorId: z.string().optional(),
 })
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const gate = await requirePayroll("hr:payroll:loans")
+  if ("error" in gate) return gate.error
+  const { institutionId, userId } = gate.access
+
+  let body: z.infer<typeof patchSchema>
   try {
-    const body = patchSchema.parse(await request.json())
-    const institutionId = await resolveInstitutionId(body.institutionId)
+    body = patchSchema.parse(await request.json())
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 })
+  }
+
+  try {
     const loan = await updateSalaryLoanStatus({
       id: params.id,
       institutionId,
       action: body.action,
-      actorId: body.actorId,
+      actorId: userId,
     })
     return NextResponse.json({ success: true, data: loan, message: `Loan ${body.action === "cancel" ? "cancelled" : "settled"}` })
   } catch (error: any) {

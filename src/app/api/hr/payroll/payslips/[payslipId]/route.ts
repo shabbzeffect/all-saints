@@ -1,9 +1,10 @@
 /* HR Payslip API - SaintsHub
- * GET /api/hr/payroll/payslips/[payslipId] -> payslip detail with line items
+ * GET /api/hr/payroll/payslips/[payslipId] -> payslip detail with line items   [hr:payroll:read]
  */
 
 import { NextResponse } from "next/server"
-import { resolveInstitutionId, getPayslip } from "@/server/services/hr/payroll.service"
+import { requirePayroll } from "@/server/payroll-access"
+import { getPayslip } from "@/server/services/hr/payroll.service"
 
 export const dynamic = "force-dynamic"
 
@@ -11,9 +12,11 @@ export async function GET(
   request: Request,
   { params }: { params: { payslipId: string } }
 ) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const payslip = await getPayslip({ payslipId: params.payslipId, institutionId })
     return NextResponse.json({ success: true, data: payslip })
   } catch (error: any) {

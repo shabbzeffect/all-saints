@@ -45,7 +45,10 @@ export const authConfig = {
   adapter: PrismaAdapter(prisma),
 
   session: {
-    strategy: "database" as const,
+    // NOTE: the original "database" strategy was broken — adapter sessions are never
+    // created for the credentials provider (it issues a JWT), so server-side auth()
+    // always returned null. JWT is what the callbacks above are written against.
+    strategy: "jwt" as const,
     // Auth.js / NextAuth standard expects maxAge calculated explicitly in seconds, not integer days
     maxAge: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,

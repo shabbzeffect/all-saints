@@ -5,8 +5,8 @@
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { requirePayroll } from "@/server/payroll-access"
 import {
-  resolveInstitutionId,
   listSalaryLoans,
   createSalaryLoan,
 } from "@/server/services/hr/payroll.service"
@@ -14,9 +14,12 @@ import {
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const loans = await listSalaryLoans({
       institutionId,
       staffId: searchParams.get("staffId"),
@@ -30,7 +33,6 @@ export async function GET(request: Request) {
 }
 
 const createLoanSchema = z.object({
-  institutionId: z.string().optional(),
   staffId: z.string().min(1, "Staff member is required"),
   description: z.string().min(1, "Description is required").max(200),
   principal: z.number().positive("Principal must be greater than 0").max(100_000_000),
@@ -40,14 +42,16 @@ const createLoanSchema = z.object({
     .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "startPeriod must be YYYY-MM")
     .optional(),
   notes: z.string().max(500).optional(),
-  actorId: z.string().optional(),
 })
 
 export async function POST(request: Request) {
+  const gate = await requirePayroll("hr:payroll:loans")
+  if ("error" in gate) return gate.error
+  const { institutionId, userId } = gate.access
+
   try {
     const body = createLoanSchema.parse(await request.json())
-    const institutionId = await resolveInstitutionId(body.institutionId)
-    const loan = await createSalaryLoan({ ...body, institutionId })
+    const loan = await createSalaryLoan({ ...body, institutionId, actorId: userId })
     return NextResponse.json({ success: true, data: loan, message: "Loan granted — deductions start with the next computed run" })
   } catch (error: any) {
     if (error?.name === "ZodError") {

@@ -520,6 +520,14 @@ export async function finalizePayrollRun({
   if (!run) throw new Error("Payroll run not found")
   if (run.status !== "DRAFT") throw new Error(`Cannot finalize a ${run.status} run`)
 
+  // Maker-checker: the user who created a run cannot also finalize it.
+  // (System/seeded runs have createdById like "system" and never match a real user id.)
+  if (run.createdById && finalizedById && run.createdById === finalizedById) {
+    throw new Error(
+      "Maker-checker: the user who created this run cannot finalize it — a second authorized approver is required"
+    )
+  }
+
   const count = await prisma.payslip.count({ where: { payrollRunId: run.id } })
   if (count === 0) throw new Error("Run has no payslips — compute it first")
 

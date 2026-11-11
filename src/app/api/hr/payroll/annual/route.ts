@@ -5,15 +5,19 @@
 
 import { NextResponse } from "next/server"
 import { prisma } from "@/server/db"
-import { resolveInstitutionId, getAnnualTaxReport } from "@/server/services/hr/payroll.service"
+import { requirePayroll } from "@/server/payroll-access"
+import { getAnnualTaxReport } from "@/server/services/hr/payroll.service"
 import { toCsv, csvResponse } from "@/lib/csv"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10)
     const format = searchParams.get("format") === "csv" ? "csv" : "json"
 

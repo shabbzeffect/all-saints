@@ -5,8 +5,8 @@
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { requirePayroll } from "@/server/payroll-access"
 import {
-  resolveInstitutionId,
   getStatutorySettings,
   updateStatutorySettings,
 } from "@/server/services/hr/payroll.service"
@@ -14,9 +14,12 @@ import {
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  const gate = await requirePayroll("hr:payroll:read")
+  if ("error" in gate) return gate.error
+  const { institutionId } = gate.access
+
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = await resolveInstitutionId(searchParams.get("institutionId"))
     const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10)
     const data = await getStatutorySettings(institutionId, year)
     return NextResponse.json({ success: true, data })
@@ -27,7 +30,6 @@ export async function GET(request: Request) {
 }
 
 const putSchema = z.object({
-  institutionId: z.string().optional(),
   year: z.number().int().min(2000).max(2100),
   personalRelief: z.number().min(0).max(100_000),
   shifRate: z.number().min(0).max(0.2),
@@ -45,14 +47,16 @@ const putSchema = z.object({
     )
     .min(1)
     .max(10),
-  actorId: z.string().optional(),
 })
 
 export async function PUT(request: Request) {
+  const gate = await requirePayroll("hr:payroll:settings")
+  if ("error" in gate) return gate.error
+  const { institutionId, userId } = gate.access
+
   try {
     const body = putSchema.parse(await request.json())
-    const institutionId = await resolveInstitutionId(body.institutionId)
-    const data = await updateStatutorySettings({ ...body, institutionId })
+    const data = await updateStatutorySettings({ ...body, institutionId, actorId: userId })
     return NextResponse.json({ success: true, data, message: `Statutory settings for ${body.year} saved` })
   } catch (error: any) {
     if (error?.name === "ZodError") {
