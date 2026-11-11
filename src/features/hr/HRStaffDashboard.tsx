@@ -47,6 +47,7 @@ const LEAVE_STATUS_VARIANT: Record<LeaveRow["status"], "warning" | "success" | "
 
 export function HRStaffDashboard() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRow[]>([])
+  const [estimatedPayroll, setEstimatedPayroll] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,12 +56,16 @@ export function HRStaffDashboard() {
       .then((body) => setLeaveRequests(body?.data ?? []))
       .catch(() => setLeaveRequests([]))
       .finally(() => setLoading(false))
+    fetch("/api/hr/payroll?summary=1", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => setEstimatedPayroll(body?.data?.estimatedMonthlyPayroll ?? null))
+      .catch(() => setEstimatedPayroll(null))
   }, [])
 
   const activeStaff = DEMO_STAFF.filter((s) => s.status === "ACTIVE").length
   const onLeaveStaff = DEMO_STAFF.filter((s) => s.status === "ON_LEAVE").length
   const terminatedStaff = DEMO_STAFF.filter((s) => s.status === "TERMINATED").length
-  const monthlyPayroll = 1_850_000
+  const monthlyPayroll = estimatedPayroll ?? 1_850_000
 
   const metrics = [
     { label: "Active Staff", value: activeStaff, tone: "text-anglican-green-700" },
@@ -81,6 +86,7 @@ export function HRStaffDashboard() {
         <div className="flex gap-3 text-sm font-medium">
           <Link href="/hr/staff" className="text-anglican-blue-700 hover:underline">Staff directory →</Link>
           <Link href="/hr/leave" className="text-anglican-blue-700 hover:underline">Leave management →</Link>
+          <Link href="/hr/payroll" className="text-anglican-blue-700 hover:underline">Payroll →</Link>
         </div>
       </div>
 

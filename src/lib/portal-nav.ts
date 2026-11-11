@@ -3,6 +3,7 @@ import {
   Bell,
   BookOpen,
   Bus,
+  Calculator,
   CalendarCheck,
   CalendarDays,
   CalendarOff,
@@ -92,6 +93,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "HR Dashboard", href: "/hr", icon: Contact },
       { title: "Staff Directory", href: "/hr/staff", icon: Users },
       { title: "Leave Management", href: "/hr/leave", icon: CalendarOff },
+      { title: "Payroll", href: "/hr/payroll", icon: Calculator },
     ],
   },
   {

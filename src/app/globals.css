@@ -108,3 +108,24 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+/* Payslip print view: hide the portal chrome, print only the payslip sheet */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #payslip-print-area,
+  #payslip-print-area * {
+    visibility: visible;
+  }
+  #payslip-print-area {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    padding: 24px;
+    background: white;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+}
