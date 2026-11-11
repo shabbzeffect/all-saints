@@ -1065,3 +1065,28 @@ export async function updateSalaryLoanStatus({
 
   return { ...updated, outstanding: loan.outstanding }
 }
+
+// ============================================================================
+// STAFF SELF-SERVICE
+// ============================================================================
+
+/** FINAL payslips for the staff member linked to this user account (own view only) */
+export async function getMyPayslips(userId: string) {
+  const staff = await prisma.staff.findFirst({
+    where: { userId },
+    select: { id: true, institutionId: true },
+  })
+  if (!staff) return null
+
+  const [payslips, institution] = await Promise.all([
+    prisma.payslip.findMany({
+      where: { staffId: staff.id, status: "FINAL" },
+      include: { ...payslipInclude, run: { select: { period: true, status: true } } },
+      orderBy: { payDate: "desc" },
+      take: 36,
+    }),
+    prisma.institution.findUnique({ where: { id: staff.institutionId }, select: { name: true } }),
+  ])
+
+  return { payslips, institutionName: institution?.name ?? null }
+}

@@ -94,6 +94,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Staff Directory", href: "/hr/staff", icon: Users },
       { title: "Leave Management", href: "/hr/leave", icon: CalendarOff },
       { title: "Payroll", href: "/hr/payroll", icon: Calculator },
+      { title: "My Payslips", href: "/hr/my-payslips", icon: Receipt },
     ],
   },
   {

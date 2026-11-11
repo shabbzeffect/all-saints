@@ -1,4 +1,4 @@
-/* PayrollDashboard - SaintsHub HR Module
+﻿/* PayrollDashboard - SaintsHub HR Module
  * Kenya payroll runs: create & compute a month, review payslips, finalize or cancel.
  * Amounts in KES. Printable payslip view via window.print().
  */
@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { TableSkeleton } from "@/components/ui/skeleton"
-import { Loader2, Printer, X, Banknote, Users, CalendarClock, FileText } from "lucide-react"
+import { Loader2, X, Banknote, Users, CalendarClock, FileText } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/config"
 import { Settings, FileDown } from "lucide-react"
+import { PayslipDocument } from "./PayslipDocument"
 
 interface PayrollRunSummary {
   id: string
@@ -199,23 +200,6 @@ export function PayrollDashboard() {
     }
   }
 
-  const earnings = useMemo(
-    () => payslipView?.lines.filter((l) => l.type === "ALLOWANCE") ?? [],
-    [payslipView]
-  )
-  const deductions = useMemo(
-    () => payslipView?.lines.filter((l) => l.type === "DEDUCTION") ?? [],
-    [payslipView]
-  )
-  const employerLines = useMemo(
-    () => payslipView?.lines.filter((l) => l.type === "EMPLOYER") ?? [],
-    [payslipView]
-  )
-  const totalEarnings = useMemo(
-    () => earnings.reduce((sum, l) => sum + l.amount, 0),
-    [earnings]
-  )
-
   const yearOptions = useMemo(() => {
     const y = now.getFullYear()
     return [y - 2, y - 1, y, y + 1]
@@ -229,7 +213,7 @@ export function PayrollDashboard() {
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-bold">Payroll</h2>
           <p className="text-sm text-muted-foreground">
-            Kenya statutory payroll — PAYE, NSSF, SHIF and Affordable Housing Levy. Create a run, review payslips, then finalize.
+            Kenya statutory payroll â€” PAYE, NSSF, SHIF and Affordable Housing Levy. Create a run, review payslips, then finalize.
           </p>
         </div>
         <div className="flex items-end gap-2">
@@ -252,8 +236,8 @@ export function PayrollDashboard() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: "Active staff", value: String(hrSummary?.activeStaff ?? "—"), icon: Users, tone: "text-anglican-green-700" },
-          { label: "Est. monthly payroll", value: hrSummary ? formatCurrency(hrSummary.estimatedMonthlyPayroll) : "—", icon: Banknote, tone: "text-anglican-blue-700" },
+          { label: "Active staff", value: String(hrSummary?.activeStaff ?? "â€”"), icon: Users, tone: "text-anglican-green-700" },
+          { label: "Est. monthly payroll", value: hrSummary ? formatCurrency(hrSummary.estimatedMonthlyPayroll) : "â€”", icon: Banknote, tone: "text-anglican-blue-700" },
           { label: "Last finalized net", value: hrSummary?.latestCompletedRun ? formatCurrency(hrSummary.latestCompletedRun.totalNet) : "None", icon: CalendarClock, tone: "text-anglican-gold-600" },
           { label: "Draft runs", value: String(hrSummary?.draftRuns ?? 0), icon: FileText, tone: "text-destructive" },
         ].map((metric) => {
@@ -314,7 +298,7 @@ export function PayrollDashboard() {
             </div>
             <Button onClick={createRun} disabled={creating} className="sm:w-auto">
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-              {creating ? "Computing…" : "Create & compute"}
+              {creating ? "Computingâ€¦" : "Create & compute"}
             </Button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -407,7 +391,7 @@ export function PayrollDashboard() {
                 <Badge variant={RUN_STATUS_VARIANT[detail.status]} size="sm">{detail.status}</Badge>
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Pay date {formatDate(detail.payDate)} · {detail.staffCount} staff · Employer cost {formatCurrency(detail.totalEmployerCost)}
+                Pay date {formatDate(detail.payDate)} Â· {detail.staffCount} staff Â· Employer cost {formatCurrency(detail.totalEmployerCost)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -455,7 +439,7 @@ export function PayrollDashboard() {
                 {detail.payslips.map((slip) => (
                   <TableRow key={slip.id}>
                     <TableCell className="font-medium">{slip.staff.user.name ?? "Staff"}</TableCell>
-                    <TableCell className="text-sm">{slip.staff.role?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{slip.staff.role?.name ?? "â€”"}</TableCell>
                     {detail.status === "DRAFT" && (
                       <TableCell className="text-right">
                         <input
@@ -486,7 +470,7 @@ export function PayrollDashboard() {
             </Table>
             {detail.status === "DRAFT" && (
               <p className="mt-2 text-xs text-muted-foreground">
-                One-off allowances: enter amounts above and click <strong>Recompute</strong>. Approved UNPAID leave (Basic ÷ 30 per day) and active salary loans are applied automatically.
+                One-off allowances: enter amounts above and click <strong>Recompute</strong>. Approved UNPAID leave (Basic Ã· 30 per day) and active salary loans are applied automatically.
               </p>
             )}
           </CardContent>
@@ -495,121 +479,7 @@ export function PayrollDashboard() {
 
       {/* Payslip overlay (printable) */}
       {payslipView && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 print:static print:items-stretch print:bg-transparent print:p-0">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Payslip for ${payslipView.staff.user.name ?? "staff"}`}
-            className="w-full max-w-2xl rounded-xl bg-white text-gray-900 shadow-2xl print:max-w-none print:rounded-none print:shadow-none"
-          >
-            <div id="payslip-print-area" className="bg-white p-6 text-gray-900 sm:p-8">
-              {/* Letterhead */}
-              <div className="border-b-2 border-[#1f2a44] pb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-heading text-lg font-bold text-[#1f2a44]">ALL SAINTS MUSHILILIE ACADEMY</p>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">All Saints Mushililie · Payroll Office</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-[#1f2a44]">PAYSLIP</p>
-                    <p className="text-xs text-gray-500">{detail ? periodLabel(detail.period) : ""}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Employee block */}
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Employee</p>
-                  <p className="font-semibold">{payslipView.staff.user.name}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Designation</p>
-                  <p className="font-semibold">{payslipView.staff.role?.name ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Employment</p>
-                  <p className="font-semibold">{payslipView.staff.employmentType?.name ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Pay date</p>
-                  <p className="font-semibold">{formatDate(payslipView.payDate)}</p>
-                </div>
-              </div>
-
-              {/* Earnings & deductions */}
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="border-b border-gray-200 pb-1 text-xs font-bold uppercase tracking-wide text-gray-700">Earnings</p>
-                  <table className="mt-2 w-full text-sm">
-                    <tbody>
-                      {earnings.map((line) => (
-                        <tr key={line.id} className="border-b border-gray-100">
-                          <td className="py-1.5">{line.description}</td>
-                          <td className="py-1.5 text-right tabular-nums">{formatCurrency(line.amount)}</td>
-                        </tr>
-                      ))}
-                      <tr className="font-semibold">
-                        <td className="py-1.5">Gross pay</td>
-                        <td className="py-1.5 text-right tabular-nums">{formatCurrency(payslipView.grossSalary)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div>
-                  <p className="border-b border-gray-200 pb-1 text-xs font-bold uppercase tracking-wide text-gray-700">Deductions</p>
-                  <table className="mt-2 w-full text-sm">
-                    <tbody>
-                      {deductions.map((line) => (
-                        <tr key={line.id} className="border-b border-gray-100">
-                          <td className="py-1.5">{line.description}</td>
-                          <td className="py-1.5 text-right tabular-nums">{formatCurrency(line.amount)}</td>
-                        </tr>
-                      ))}
-                      <tr className="font-semibold">
-                        <td className="py-1.5">Total deductions</td>
-                        <td className="py-1.5 text-right tabular-nums">{formatCurrency(payslipView.totalDeductions)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Net pay box */}
-              <div className="mt-5 flex items-center justify-between rounded-lg border-2 border-[#1f2a44] px-4 py-3">
-                <span className="text-sm font-bold uppercase tracking-wide text-[#1f2a44]">Net pay</span>
-                <span className="text-xl font-bold tabular-nums text-[#1f2a44]">{formatCurrency(payslipView.netSalary)}</span>
-              </div>
-
-              {/* Employer contributions */}
-              {employerLines.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Employer contributions (not deducted)</p>
-                  <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600">
-                    {employerLines.map((line) => (
-                      <span key={line.id}>
-                        {line.description}: <span className="font-semibold tabular-nums">{formatCurrency(line.amount)}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <p className="mt-5 border-t border-gray-200 pt-3 text-center text-[10px] text-gray-500">
-                Generated by SaintsHub on {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })} · This payslip is computer-generated
-              </p>
-            </div>
-
-            {/* Overlay actions — hidden when printing */}
-            <div className="print-hidden flex items-center justify-end gap-2 border-t border-gray-200 p-4">
-              <Button variant="outline" size="sm" onClick={() => window.print()}>
-                <Printer className="mr-2 h-4 w-4" aria-hidden="true" />
-                Print
-              </Button>
-              <Button size="sm" onClick={() => setPayslipView(null)}>Close</Button>
-            </div>
-          </div>
-        </div>
+        <PayslipDocument payslip={payslipView} periodLabel={detail ? periodLabel(detail.period) : ''} onClose={() => setPayslipView(null)} />
       )}
     </div>
   )
