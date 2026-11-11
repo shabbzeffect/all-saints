@@ -1,59 +1,25 @@
-"use server"
-import { PrismaClient } from "@prisma/client"
+/* AUTO-STUB - written against a schema that never existed.
+ * Every handler fails closed with 501 until this module is rebuilt against
+ * the Prisma models in prisma/schema.prisma. Do not route traffic here.
+ */
+import { NextResponse } from "next/server"
 
-const prisma = new PrismaClient()
+export const dynamic = "force-dynamic"
+
+const message = "Not implemented - this module was written against a placeholder schema and has not been built yet"
 
 export async function GET() {
-  try {
-    const [books, members, loans, returns] = await Promise.all([
-      // Books
-      prisma.book.findMany({
-        include: {
-          category: true,
-        },
-        orderBy: { title: "asc" },
-      }),
-      prisma.member.findMany({
-        include: {
-          user: true,
-        },
-        orderBy: { name: "asc" },
-      }),
-      prisma.loan.findMany({
-        include: {
-          book: true,
-          member: true,
-        },
-        orderBy: { borrowedDate: "desc" },
-      }),
-      prisma.returnRecord.findMany({
-        include: {
-          book: true,
-          member: true,
-        },
-        orderBy: { processedAt: "desc" },
-      }),
-    ])
-
-    return new Response(
-      JSON.stringify({
-        data: {
-          books,
-          members,
-          loans,
-          returns,
-        },
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      },
-    )
-  } catch (error) {
-    console.error("Library API error:", error)
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch library data" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    )
-  }
+  return NextResponse.json({ success: false, error: message }, { status: 501 })
+}
+export async function POST() {
+  return NextResponse.json({ success: false, error: message }, { status: 501 })
+}
+export async function PUT() {
+  return NextResponse.json({ success: false, error: message }, { status: 501 })
+}
+export async function PATCH() {
+  return NextResponse.json({ success: false, error: message }, { status: 501 })
+}
+export async function DELETE() {
+  return NextResponse.json({ success: false, error: message }, { status: 501 })
 }

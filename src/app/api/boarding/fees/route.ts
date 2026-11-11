@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/server/db"
+import { requireAccess } from "@/server/rbac"
 
 interface BoardingFee {
   id: string
@@ -20,13 +21,17 @@ interface FeeFilter {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAccess("portal:staff:read")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const { searchParams } = new URL(request.url)
     const wing = searchParams.get("wing") as "SCHOOL" | "PARISH" || "SCHOOL"
     const mandatory = searchParams.get("mandatory") === "true"
     const searchTerm = searchParams.get("search") || ""
 
-    const where: any = {}
+    const where: any = { institutionId: membership.institutionId }
 
     if (wing) {
       where.wing = wing
@@ -60,6 +65,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAccess("portal:staff:write")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const body = await request.json()
 
@@ -71,6 +80,7 @@ export async function POST(request: Request) {
         isMandatory: body.isMandatory,
         applicableGrades: body.applicableGrades || [],
         wing: body.wing,
+        institutionId: membership.institutionId,
         isActive: body.isActive ?? true,
       },
     })
@@ -88,3 +98,4 @@ export async function POST(request: Request) {
     )
   }
 }
+

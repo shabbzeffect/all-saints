@@ -2,7 +2,7 @@
 // Provides: CRUD operations, search, filtering, pagination
 // All routes enforce RBAC and institution scoping via middleware
 
-import { withAuth, requirePermission } from "@/server/authorization"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
 import { getStudents, getStudentById, createStudent, updateStudent, softDeleteStudent } from "@/server/services/school/students/student.service"
 import { createAdmissionInquiry, updateAdmissionStatus, getAdmissions } from "@/server/services/school/admissions/admission.service"
 import { getInstitutionGuardians, getGuardianById, createGuardian, updateGuardian, removeStudentGuardianLinkage, getStudentGuardians } from "@/server/services/school/guardians/guardian.service"
@@ -21,7 +21,7 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
     const search = searchParams.get("search") || ""
@@ -29,12 +29,7 @@ export async function GET(request: Request, { params }: { params: { institution:
     const gradeId = searchParams.get("gradeId") || ""
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:students:read",
-      async () => { },
-      { anyOf: ["school:students:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -59,16 +54,11 @@ export async function GET(request: Request, { params }: { params: { institution:
 export async function POST(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:students:write",
-      async () => { },
-      { anyOf: ["school:students:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -99,16 +89,11 @@ export async function POST(request: Request, { params }: { params: { institution
 export async function GETsingle(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const id = params.id
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:students:read",
-      async () => { },
-      { anyOf: ["school:students:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -129,17 +114,12 @@ export async function GETsingle(request: Request, { params }: { params: { instit
 export async function PUT(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const id = params.id
     const updatedBy = body.updatedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:students:write",
-      async () => { },
-      { anyOf: ["school:students:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -166,17 +146,12 @@ export async function PUT(request: Request, { params }: { params: { institution:
 export async function DELETE(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const id = params.id
     const deletedBy = body.deletedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:students:delete",
-      async () => { },
-      { anyOf: ["school:students:delete"] }
-    )
+    const permissionCheck = await requirePermission("portal:admin:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -207,16 +182,11 @@ export async function DELETE(request: Request, { params }: { params: { instituti
 export async function GETadmissions(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const status = searchParams.get("status") as any
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:read",
-      async () => { },
-      { anyOf: ["school:admissions:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -238,16 +208,11 @@ export async function GETadmissions(request: Request, { params }: { params: { in
 export async function POSTadmissions(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:write",
-      async () => { },
-      { anyOf: ["school:admissions:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -273,17 +238,12 @@ export async function POSTadmissions(request: Request, { params }: { params: { i
 export async function PUTadmissions(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const id = params.id
     const updatedBy = body.updatedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:admissions:write",
-      async () => { },
-      { anyOf: ["school:admissions:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -315,17 +275,12 @@ export async function PUTadmissions(request: Request, { params }: { params: { in
 export async function GETguardians(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const relationship = searchParams.get("relationship")
     const isPrimary = searchParams.get("isPrimary")
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:read",
-      async () => { },
-      { anyOf: ["school:guardians:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -347,16 +302,11 @@ export async function GETguardians(request: Request, { params }: { params: { ins
 export async function POSTguardians(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:write",
-      async () => { },
-      { anyOf: ["school:guardians:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -382,17 +332,12 @@ export async function POSTguardians(request: Request, { params }: { params: { in
 export async function PUTguardians(request: Request, { params }: { params: { institution: string; id: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const id = params.id
     const updatedBy = body.updatedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:write",
-      async () => { },
-      { anyOf: ["school:guardians:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -423,16 +368,11 @@ export async function PUTguardians(request: Request, { params }: { params: { ins
 export async function POSTstudentGuardianLink(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:guardians:write",
-      async () => { },
-      { anyOf: ["school:guardians:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -468,18 +408,13 @@ export async function POSTstudentGuardianLink(request: Request, { params }: { pa
 export async function GETenrolments(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const gradeId = searchParams.get("gradeId")
     const termId = searchParams.get("termId")
     const studentId = searchParams.get("studentId")
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:enrolments:read",
-      async () => { },
-      { anyOf: ["school:enrolments:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -501,16 +436,11 @@ export async function GETenrolments(request: Request, { params }: { params: { in
 export async function POSTenrolments(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:enrolments:write",
-      async () => { },
-      { anyOf: ["school:enrolments:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -540,17 +470,12 @@ export async function POSTenrolments(request: Request, { params }: { params: { i
 export async function GETassessments(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const gradeId = searchParams.get("gradeId")
     const termId = searchParams.get("termId")
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:assessments:read",
-      async () => { },
-      { anyOf: ["school:assessments:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -574,16 +499,11 @@ export async function GETassessments(request: Request, { params }: { params: { i
 export async function POSTassessments(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:assessments:write",
-      async () => { },
-      { anyOf: ["school:assessments:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -613,16 +533,11 @@ export async function POSTassessments(request: Request, { params }: { params: { 
 export async function GETreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const studentId = searchParams.get("studentId")
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:report-cards:read",
-      async () => { },
-      { anyOf: ["school:report-cards:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -658,16 +573,11 @@ export async function GETreportCards(request: Request, { params }: { params: { i
 export async function POSTreportCards(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const issuedBy = body.issuedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:report-cards:write",
-      async () => { },
-      { anyOf: ["school:report-cards:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:admin:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -699,17 +609,12 @@ export async function POSTreportCards(request: Request, { params }: { params: { 
 export async function GETattendance(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
     const studentId = searchParams.get("studentId")
     const status = searchParams.get("status")
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:attendance:read",
-      async () => { },
-      { anyOf: ["school:attendance:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -738,16 +643,11 @@ export async function GETattendance(request: Request, { params }: { params: { in
 export async function POSTattendance(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const markedBy = body.markedBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:attendance:write",
-      async () => { },
-      { anyOf: ["school:attendance:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:write")
 
     if (permissionCheck) return permissionCheck
 
@@ -780,15 +680,10 @@ export async function POSTattendance(request: Request, { params }: { params: { i
 export async function GETpromotions(request: Request, { params }: { params: { institution: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || params.institution
+    const institutionId = await scopedInstitutionId()
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:promotions:read",
-      async () => { },
-      { anyOf: ["school:promotions:read"] }
-    )
+    const permissionCheck = await requirePermission("portal:staff:read")
 
     if (permissionCheck) return permissionCheck
 
@@ -808,16 +703,11 @@ export async function GETpromotions(request: Request, { params }: { params: { in
 export async function POSTpromotions(request: Request, { params }: { params: { institution: string } }) {
   try {
     const body = await request.json()
-    const institutionId = body.institutionId || params.institution
+    const institutionId = await scopedInstitutionId()
     const createdBy = body.createdBy || "system"
 
     // Check permission
-    const permissionCheck = await requirePermission(
-      request,
-      "school:promotions:write",
-      async () => { },
-      { anyOf: ["school:promotions:write"] }
-    )
+    const permissionCheck = await requirePermission("portal:admin:write")
 
     if (permissionCheck) return permissionCheck
 

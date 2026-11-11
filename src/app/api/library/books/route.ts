@@ -1,40 +1,31 @@
+/* Library Books API - SaintsHub Library
+ * GET  /api/library/books  -> list books (?category=&search=&minAvailable=)  [portal:staff:read]
+ * POST /api/library/books  -> add a book                                     [portal:staff:write]
+ */
+
 import { NextResponse } from "next/server"
+import { PublicationCategory, Language } from "@prisma/client"
 import { prisma } from "@/server/db"
+import { requireAccess } from "@/server/rbac"
 
-interface Book {
-  id: string
-  title: string
-  author: string
-  isbn: string
-  category: "FICTION" | "NON_FICTION" | "REFERENCE" | "BIOGRAPHY" | "CHILDREN"
-  publisher: string
-  publishedYear: number
-  totalCopies: number
-  availableCopies: number
-  language: string
-  description: string
-  location: "SHELVES" | "STORAGE" | "PROCESSING"
-  condition: "NEW" | "GOOD" | "FAIR" | "POOR"
-}
+export const dynamic = "force-dynamic"
 
-interface BookFilter {
-  category?: "FICTION" | "NON_FICTION" | "REFERENCE" | "BIOGRAPHY" | "CHILDREN"
-  searchTerm?: string
-  minAvailable?: number
-}
+const CATEGORIES = Object.values(PublicationCategory)
+const LANGUAGES = Object.values(Language)
 
 export async function GET(request: Request) {
+  const gate = await requireAccess("portal:staff:read")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const { searchParams } = new URL(request.url)
-    const category = searchParams.get("category") as "FICTION" | "NON_FICTION" | "REFERENCE" | "BIOGRAPHY" | "CHILDREN" || undefined
-    const searchTerm = searchParams.get("search") || ""
-    const minAvailable = searchParams.get("minAvailable") ? Number(searchParams.get("minAvailable")) : undefined
+    const category = searchParams.get("category")
+    const searchTerm = (searchParams.get("search") ?? "").trim()
+    const minAvailable = searchParams.get("minAvailable")
 
-    const where: any = {
-      institutionId: undefined, // Will be set by middleware/auth
-    }
-
-    if (category) {
+    const where: any = { institutionId: membership.institutionId }
+    if (category && CATEGORIES.includes(category as PublicationCategory)) {
       where.category = category
     }
     if (searchTerm) {
@@ -42,63 +33,68 @@ export async function GET(request: Request) {
         { title: { contains: searchTerm, mode: "insensitive" } },
         { author: { contains: searchTerm, mode: "insensitive" } },
         { isbn: { contains: searchTerm, mode: "insensitive" } },
-        { description: { contains: searchTerm, mode: "insensitive" } },
       ]
     }
-    if (minAvailable !== undefined) {
-      where.availableCopies = { gte: minAvailable }
+    if (minAvailable) {
+      const min = parseInt(minAvailable, 10)
+      if (Number.isFinite(min)) where.copiesAvailable = { gte: min }
     }
 
     const books = await prisma.book.findMany({
       where,
       orderBy: { title: "asc" },
+      take: 100,
     })
-
-    return NextResponse.json({
-      success: true,
-      data: books,
-    })
+    return NextResponse.json({ success: true, data: books })
   } catch (error) {
     console.error("Library books error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch books" },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: "Failed to fetch books" }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAccess("portal:staff:write")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const body = await request.json()
+    const title = String(body.title ?? "").trim()
+    const author = String(body.author ?? "").trim()
+    const publicationYear = parseInt(body.publicationYear, 10)
+    const copiesTotal = parseInt(body.copiesTotal, 10)
 
-    const newBook = await prisma.book.create({
+    if (!title || !author) {
+      return NextResponse.json({ success: false, error: "title and author are required" }, { status: 400 })
+    }
+    if (!Number.isFinite(publicationYear) || publicationYear < 1000 || publicationYear > 2100) {
+      return NextResponse.json({ success: false, error: "publicationYear is required" }, { status: 400 })
+    }
+    if (!Number.isFinite(copiesTotal) || copiesTotal < 1) {
+      return NextResponse.json({ success: false, error: "copiesTotal must be at least 1" }, { status: 400 })
+    }
+    const category = CATEGORIES.includes(body.category) ? body.category : PublicationCategory.OTHER
+
+    const book = await prisma.book.create({
       data: {
-        title: body.title,
-        author: body.author,
-        isbn: body.isbn,
-        category: body.category,
-        publisher: body.publisher,
-        publishedYear: body.publishedYear,
-        totalCopies: body.totalCopies,
-        availableCopies: body.availableCopies ?? body.totalCopies,
-        language: body.language,
-        description: body.description,
-        location: "PROCESSING",
-        condition: "NEW",
-        institutionId: "INSTITUTION_ID_PLACEHOLDER", // Will be set by middleware
+        institutionId: membership.institutionId,
+        title,
+        author,
+        isbn: body.isbn ? String(body.isbn).trim() : null,
+        publisher: body.publisher ? String(body.publisher).trim() : null,
+        publicationYear,
+        category,
+        language: LANGUAGES.includes(body.language) ? body.language : Language.ENGLISH,
+        copiesTotal,
+        copiesAvailable: copiesTotal,
+        description: body.description ? String(body.description).slice(0, 2000) : null,
+        pageCount: Number.isFinite(parseInt(body.pageCount)) ? parseInt(body.pageCount, 10) : null,
+        coAuthor: body.coAuthor ? String(body.coAuthor).trim() : null,
       },
     })
-
-    return NextResponse.json({
-      success: true,
-      data: newBook,
-      message: "Book added successfully",
-    })
+    return NextResponse.json({ success: true, data: book, message: "Book added successfully" }, { status: 201 })
   } catch (error) {
     console.error("Create book error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to create book" },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: "Failed to add book" }, { status: 500 })
   }
 }

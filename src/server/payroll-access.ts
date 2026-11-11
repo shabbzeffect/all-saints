@@ -1,13 +1,10 @@
 /* payroll-access.ts
- * Access control for payroll API routes - SaintsHub
- * Signed-in user -> ACTIVE institution membership -> role permissions.
- * Institution scoping comes from the membership (never from query params).
- * Denials are audited; every allowed mutation should pass the acting user id
- * into the service for audit attribution.
+ * Payroll route guard built on the shared portal RBAC (rbac.ts).
+ * Kept as a thin wrapper for payroll's error-response shape ({ success, error }).
  */
 
 import { NextResponse } from "next/server"
-import { auth } from "@/server/auth/auth"
+import { getMembershipContext, type MembershipContext } from "@/server/rbac"
 import { prisma } from "@/server/db"
 
 export interface PayrollAccess {
@@ -21,50 +18,17 @@ export type AccessGate = { error: NextResponse } | { access: PayrollAccess }
 const json = (status: number, error: string) =>
   NextResponse.json({ success: false, error }, { status })
 
-/** Require a permission for the current signed-in user.
- * Returns either a 401/403 NextResponse (caller must return it) or the access context. */
+/** Require a payroll permission for the current signed-in user. */
 export async function requirePayroll(permission: string): Promise<AccessGate> {
-  const session = await auth()
-  const sessionUser = session?.user as { id?: string; email?: string | null } | undefined
-  if (!sessionUser) {
-    return { error: json(401, "Not signed in") }
-  }
+  const gate = await getMembershipContext()
+  if ("error" in gate) return { error: gate.error }
 
-  let userId = sessionUser.id ?? null
-  if (!userId && sessionUser.email) {
-    const user = await prisma.user.findUnique({ where: { email: sessionUser.email }, select: { id: true } })
-    userId = user?.id ?? null
-  }
-  if (!userId) {
-    return { error: json(401, "Not signed in") }
-  }
-
-  const membership = await prisma.institutionMembership.findFirst({
-    where: { userId, status: "ACTIVE" },
-    include: {
-      userRoles: {
-        where: { isActive: true },
-        include: { role: { include: { permissions: { include: { permission: true } } } } },
-      },
-    },
-  })
-
-  if (!membership) {
-    return { error: json(403, "No active institution membership") }
-  }
-
-  const permissions = new Set<string>()
-  for (const ur of membership.userRoles) {
-    for (const rp of ur.role.permissions) {
-      permissions.add(rp.permission.key)
-    }
-  }
-
-  if (!permissions.has(permission)) {
+  const { membership } = gate
+  if (!membership.permissions.has(permission)) {
     await prisma.auditEvent
       .create({
         data: {
-          actorId: userId,
+          actorId: membership.userId,
           action: "READ",
           targetType: "Permission",
           targetName: permission,
@@ -72,7 +36,7 @@ export async function requirePayroll(permission: string): Promise<AccessGate> {
           metadata: {
             action: "payroll_access_denied",
             required: permission,
-            userHas: [...permissions],
+            userHas: [...membership.permissions],
           },
         },
       })
@@ -80,5 +44,11 @@ export async function requirePayroll(permission: string): Promise<AccessGate> {
     return { error: json(403, `Requires permission: ${permission}`) }
   }
 
-  return { access: { userId, institutionId: membership.institutionId, permissions } }
+  return {
+    access: {
+      userId: membership.userId,
+      institutionId: membership.institutionId,
+      permissions: membership.permissions,
+    },
+  }
 }

@@ -29,11 +29,26 @@ interface MpesaCallbackRequest {
 }
 
 export async function POST(request: Request) {
+  // Optional shared-secret guard: when MPESA_CALLBACK_SECRET is configured,
+  // Safaricom (or the proxy in front of it) must present the secret.
+  const secret = process.env.MPESA_CALLBACK_SECRET
+  if (secret) {
+    const { searchParams } = new URL(request.url)
+    const presented = request.headers.get("x-mpesa-secret") ?? searchParams.get("secret")
+    if (presented !== secret) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+    }
+  }
+
   try {
     const body: MpesaCallbackRequest = await request.json()
 
-    const { ResultCode, ResultDesc, CustomerName, CustomerMSISDN, Amount } = body.mpesaCallbackBody.Body.stkCallback
-    const { invoiceId, processedBy } = body
+    const stk = body?.mpesaCallbackBody?.Body?.stkCallback
+    if (!stk) {
+      return NextResponse.json({ success: false, error: "Invalid callback payload" }, { status: 400 })
+    }
+    const { ResultCode, ResultDesc, Amount } = stk
+    const { invoiceId } = body
 
     // Handle M-Pesa STK push callback
     let responseData: any
@@ -51,7 +66,7 @@ export async function POST(request: Request) {
           createdAt: new Date().toISOString(),
         },
       }
-    } else if (body.mpesaCallbackBody.Body.CallBackMetadata.some(
+    } else if (body.mpesaCallbackBody?.Body?.stkCallback?.CallBackMetadata?.some(
       (meta: any) => meta.Key === "AccountReference" && meta.Value === invoiceId
     )) {
       // Idempotent - receipt already exists

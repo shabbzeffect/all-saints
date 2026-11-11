@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/server/db"
+import { requireAccess } from "@/server/rbac"
 
 interface Dormitory {
   id: string
@@ -20,6 +21,10 @@ interface DormitoryFilter {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAccess("portal:staff:read")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const { searchParams } = new URL(request.url)
     const wing = searchParams.get("wing") as "SCHOOL" | "PARISH" || "SCHOOL"
@@ -27,7 +32,7 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") as "ACTIVE" | "INACTIVE" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    const where: any = {}
+    const where: any = { institutionId: membership.institutionId }
 
     if (wing) {
       where.wing = wing
@@ -69,6 +74,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAccess("portal:staff:write")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const body = await request.json()
 
@@ -77,6 +86,7 @@ export async function POST(request: Request) {
         name: body.name,
         type: body.type,
         wing: body.wing,
+        institutionId: membership.institutionId,
         capacity: body.capacity,
         currentOccupancy: 0,
         isActive: body.isAuto !== false, // Default to active
@@ -96,3 +106,4 @@ export async function POST(request: Request) {
     )
   }
 }
+

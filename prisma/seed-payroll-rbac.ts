@@ -13,6 +13,12 @@ for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
 
 const prisma = new PrismaClient({ datasources: { db: { url: env.DATABASE_URL } } })
 
+const PORTAL_PERMISSIONS = [
+  { key: "portal:staff:read", name: "View portal records", description: "Read staff-facing records (students, finance, library, boarding, transport, academics)", resource: "portal", action: "read" },
+  { key: "portal:staff:write", name: "Create and update portal records", description: "Create/update staff-facing records", resource: "portal", action: "write" },
+  { key: "portal:admin:write", name: "Administer portal records", description: "Destructive and financial admin actions (delete students, finance mutations, statutory settings)", resource: "portal", action: "admin" },
+] as const
+
 const PAYROLL_PERMISSIONS = [
   { key: "hr:payroll:read", name: "View payroll", description: "View payroll runs, payslips, exports and salary loans", resource: "payroll", action: "read" },
   { key: "hr:payroll:run", name: "Prepare payroll", description: "Create, compute and cancel payroll runs", resource: "payroll", action: "run" },
@@ -22,10 +28,11 @@ const PAYROLL_PERMISSIONS = [
 ] as const
 
 const ROLE_GRANTS: Record<string, string[]> = {
-  SCHOOL_PRINCIPAL: ["hr:payroll:read", "hr:payroll:run", "hr:payroll:finalize", "hr:payroll:settings", "hr:payroll:loans"],
-  SCHOOL_DEPUTY: ["hr:payroll:read", "hr:payroll:finalize"],
-  SCHOOL_BURSAR: ["hr:payroll:read", "hr:payroll:run", "hr:payroll:loans"],
-  SCHOOL_REGISTRAR: ["hr:payroll:read"],
+  SCHOOL_PRINCIPAL: ["hr:payroll:read", "hr:payroll:run", "hr:payroll:finalize", "hr:payroll:settings", "hr:payroll:loans", "portal:staff:read", "portal:staff:write", "portal:admin:write"],
+  SCHOOL_DEPUTY: ["hr:payroll:read", "hr:payroll:finalize", "portal:staff:read", "portal:staff:write", "portal:admin:write"],
+  SCHOOL_BURSAR: ["hr:payroll:read", "hr:payroll:run", "hr:payroll:loans", "portal:staff:read", "portal:staff:write", "portal:admin:write"],
+  SCHOOL_REGISTRAR: ["hr:payroll:read", "portal:staff:read", "portal:staff:write", "portal:admin:write"],
+  SCHOOL_TEACHER: ["portal:staff:read", "portal:staff:write"],
 }
 
 async function main() {
@@ -35,7 +42,7 @@ async function main() {
 
   // Upsert permissions (global template, no institutionId on Permission model)
   const permByKey = new Map<string, string>()
-  for (const p of PAYROLL_PERMISSIONS) {
+  for (const p of [...PAYROLL_PERMISSIONS, ...PORTAL_PERMISSIONS]) {
     const perm = await prisma.permission.upsert({
       where: { key: p.key },
       update: { name: p.name, description: p.description, resource: p.resource, action: p.action, isSystem: true },

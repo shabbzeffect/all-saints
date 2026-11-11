@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/server/db"
+import { requireAccess } from "@/server/rbac"
 
 interface Room {
   id: string
@@ -23,6 +24,10 @@ interface RoomFilter {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAccess("portal:staff:read")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const { searchParams } = new URL(request.url)
     const dormitoryId = searchParams.get("dormitoryId")
@@ -31,7 +36,7 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") as "ACTIVE" | "FULL" || undefined
     const searchTerm = searchParams.get("search") || ""
 
-    const where: any = {}
+    const where: any = { dormitory: { institutionId: membership.institutionId } }
 
     if (dormitoryId) {
       where.dormitoryId = dormitoryId
@@ -46,12 +51,8 @@ export async function GET(request: Request) {
       if (status === "ACTIVE") {
         where.isActive = true
       }
-      if (status === "FULL") {
-        where.AND = [
-          { currentStudents: { gte: capacity } },
-          { isActive: true }
-        ]
-      }
+      // status === "FULL": cross-field comparison (currentStudents >= capacity)
+      // can't be expressed in a Prisma where clause — filter in memory below
     }
     if (searchTerm) {
       where.OR = [
@@ -62,7 +63,9 @@ export async function GET(request: Request) {
     const rooms = await prisma.room.findMany({
       where,
       orderBy: { roomNumber: "asc" },
-    })
+    }).then((rows) =>
+      status === "FULL" ? rows.filter((room) => room.currentStudents >= room.capacity) : rows
+    )
 
     // Calculate occupancy rates
     const withRates = rooms.map((room) => ({
@@ -85,8 +88,17 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAccess("portal:staff:write")
+  if ("error" in gate) return gate.error
+  const { membership } = gate
+
   try {
     const body = await request.json()
+
+    const dormitory = await prisma.dormitory.findFirst({ where: { id: body.dormitoryId, institutionId: membership.institutionId } })
+    if (!dormitory) {
+      return NextResponse.json({ success: false, error: "Dormitory not found in this institution" }, { status: 404 })
+    }
 
     const newRoom = await prisma.room.create({
       data: {
@@ -114,3 +126,4 @@ export async function POST(request: Request) {
     )
   }
 }
+
