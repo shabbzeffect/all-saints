@@ -23,10 +23,30 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     setMenuOpen(false)
     setPaletteOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadUnread = () =>
+      fetch("/api/notifications?count=1", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body) => {
+          if (!cancelled) setUnreadCount(body?.data?.unread ?? 0)
+        })
+        .catch(() => {
+          /* badge stays hidden on error */
+        })
+    loadUnread()
+    const interval = window.setInterval(loadUnread, 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
   }, [pathname])
 
   useEffect(() => {
@@ -162,12 +182,16 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                 <Search className="h-5 w-5" />
               </button>
               <Link
-                href="/admin/notifications"
+                href="/notifications"
                 className="focus-ring relative rounded-full p-2 text-foreground transition-colors hover:bg-accent"
-                aria-label="Notifications"
+                aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} unread` : "Notifications"}
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-anglican-gold-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-anglican-gold-400 px-1 text-[9px] font-bold leading-none text-anglican-blue-950">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/login"

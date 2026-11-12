@@ -1,6 +1,5 @@
-﻿import { Notifications } from "@/features/shared/notifications/Notifications"
+﻿import { redirect } from "next/navigation"
 
 export default function Page() {
-  return <Notifications />
+  redirect("/notifications")
 }
-

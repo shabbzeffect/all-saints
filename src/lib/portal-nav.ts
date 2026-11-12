@@ -49,6 +49,7 @@ export const NAV_SECTIONS: NavSection[] = [
     links: [
       { title: "Executive", href: "/exec", icon: LayoutDashboard },
       { title: "Statistics", href: "/statistics", icon: BarChart3 },
+      { title: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
   {
