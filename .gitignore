@@ -10,3 +10,7 @@ node_modules
 .impeccable/direction-contract.md
 
 .next
+
+tmp-*.ts
+tmp-*.py
+tmp-import-data.json

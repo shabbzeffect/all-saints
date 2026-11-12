@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { Users } from "lucide-react"
 import { TableSkeleton } from "@/components/ui/skeleton"
 
+import { formatCurrency } from "@/lib/config"
+
 interface Student {
   id: string
   admissionNumber: string
@@ -21,10 +23,25 @@ interface Student {
   class: string
   status: string
   isBoarding: boolean
+  feesOutstanding?: number
   dateOfAdmission?: string
 }
 
-const GRADES = ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9"]
+const GRADES = [
+  { value: "PG", label: "Play Group" },
+  { value: "PP1", label: "PP1" },
+  { value: "PP2", label: "PP2" },
+  ...Array.from({ length: 9 }, (_, i) => ({ value: `GRD${i + 1}`, label: `Grade ${i + 1}` })),
+]
+
+const STATUSES = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "WITHDRAWN", label: "Withdrawn" },
+  { value: "GRADUATED", label: "Graduated" },
+  { value: "SUSPENDED", label: "Suspended" },
+  { value: "ON_LEAVE", label: "On leave" },
+  { value: "INACTIVE", label: "Inactive" },
+]
 
 export function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -37,15 +54,14 @@ export function StudentsPage() {
     const params = new URLSearchParams()
     if (searchTerm) params.set("search", searchTerm)
     if (status) params.set("status", status)
+    if (grade) params.set("grade", grade)
     setLoading(true)
     fetch(`/api/school/students${params.toString() ? `?${params}` : ""}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : { students: [] }))
       .then((data) => setStudents(data.students ?? data.data ?? []))
       .catch(() => setStudents([]))
       .finally(() => setLoading(false))
-  }, [searchTerm, status])
-
-  const visible = students.filter((s) => !grade || s.grade === grade)
+  }, [searchTerm, status, grade])
 
   return (
     <div className="space-y-6">
@@ -56,7 +72,7 @@ export function StudentsPage() {
 
       <Card>
         <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>All Students</CardTitle>
+          <CardTitle>All Students{loading ? "" : ` (${students.length})`}</CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="search"
@@ -71,7 +87,7 @@ export function StudentsPage() {
               <SelectContent>
                 <SelectItem value="">All Grades</SelectItem>
                 {GRADES.map((g) => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                  <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -79,8 +95,9 @@ export function StudentsPage() {
               <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -94,15 +111,15 @@ export function StudentsPage() {
                 <TableHead className="text-center">Grade</TableHead>
                 <TableHead className="text-center">Residence</TableHead>
                 <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Fees Owed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((student) => (
+              {students.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-mono text-xs">{student.admissionNumber}</TableCell>
                   <TableCell>
                     <div className="font-medium">{student.fullName}</div>
-                    <div className="text-xs text-muted-foreground">{student.class}</div>
                   </TableCell>
                   <TableCell className="text-center">{student.grade}</TableCell>
                   <TableCell className="text-center">
@@ -115,15 +132,22 @@ export function StudentsPage() {
                       {student.status}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {(student.feesOutstanding ?? 0) > 0 ? (
+                      <span className="text-destructive">{formatCurrency(student.feesOutstanding ?? 0)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          {!loading && visible.length === 0 && (
+          {!loading && students.length === 0 && (
             <div className="flex flex-col items-center py-8">
               <Users className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" />
               <p className="mt-2 text-sm font-medium text-muted-foreground">No students found</p>
-              <p className="text-xs text-muted-foreground/70">{searchTerm || grade || status ? "Try clearing a filter." : "Records appear here once the SIS is connected."}</p>
+              <p className="text-xs text-muted-foreground/70">{searchTerm || grade || status ? "Try clearing a filter." : "No learner records returned."}</p>
             </div>
           )}
           {loading && <TableSkeleton columns={6} rows={5} />}

@@ -1,35 +1,67 @@
 import Link from "next/link"
-import { GraduationCap, Users, Wallet, UserPlus, ArrowRight } from "lucide-react"
+import { GraduationCap, Users, Wallet, AlertCircle, ArrowRight, Receipt } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { prisma } from "@/server/db"
+import { scopedInstitutionId } from "@/server/rbac"
+import { formatCurrency } from "@/lib/config"
 
-const metrics = [
-  { label: "Total Students", value: "2,438", sub: "across 12 grades", icon: GraduationCap },
-  { label: "Active Faculty", value: "89", sub: "teaching & admin", icon: Users },
-  { label: "Fee Collection", value: "75%", sub: "KSh 4.5M of KSh 6.0M", icon: Wallet },
-  { label: "New Admissions", value: "42", sub: "this term", icon: UserPlus },
-]
+const kes = (v: unknown) => formatCurrency(Number(v ?? 0) / 100)
 
-const attendance = [
-  { day: "Mon", rate: 91 },
-  { day: "Tue", rate: 88 },
-  { day: "Wed", rate: 94 },
-  { day: "Thu", rate: 82 },
-  { day: "Fri", rate: 79 },
-]
+export default async function SchoolPage() {
+  const institutionId = await scopedInstitutionId()
+  if (!institutionId) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">School Dashboard</h2>
+        <p className="text-sm text-muted-foreground">Sign in with a staff account to see live figures.</p>
+      </div>
+    )
+  }
 
-const links = [
-  { title: "Students", href: "/school/students" },
-  { title: "Attendance", href: "/school/attendance" },
-  { title: "Academics", href: "/school/academics" },
-  { title: "School Finance", href: "/school/finance" },
-]
+  const [active, withdrawn, total, collected, invoiced, outstandingAgg, outstandingCount, recentPayments] =
+    await Promise.all([
+      prisma.student.count({ where: { institutionId, status: "ACTIVE" } }),
+      prisma.student.count({ where: { institutionId, status: "WITHDRAWN" } }),
+      prisma.student.count({ where: { institutionId } }),
+      prisma.payment.aggregate({ where: { institutionId }, _sum: { amount: true }, _count: true }),
+      prisma.invoice.aggregate({ where: { institutionId }, _sum: { totalAmount: true } }),
+      prisma.invoice.aggregate({ where: { institutionId, amountRemaining: { gt: 0 } }, _sum: { amountRemaining: true } }),
+      prisma.invoice.count({ where: { institutionId, amountRemaining: { gt: 0 } } }),
+      prisma.payment.findMany({
+        where: { institutionId },
+        orderBy: { transactionDate: "desc" },
+        take: 5,
+        include: {
+          student: { select: { firstName: true, lastName: true, admissionNumber: true } },
+          receipt: { select: { receiptNumber: true } },
+        },
+      }),
+    ])
 
-export default function SchoolPage() {
+  const collectedKes = Number(collected._sum.amount ?? 0) / 100
+  const invoicedKes = Number(invoiced._sum.totalAmount ?? 0) / 100
+  const outstandingKes = Number(outstandingAgg._sum.amountRemaining ?? 0) / 100
+  const collectionPct = invoicedKes > 0 ? Math.min(100, Math.round((collectedKes / invoicedKes) * 100)) : 0
+
+  const metrics = [
+    { label: "Active Students", value: String(active), sub: `${withdrawn} withdrawn in 2026`, icon: GraduationCap },
+    { label: "Total Learners", value: String(total), sub: "imported register, all grades", icon: Users },
+    { label: "Fees Collected", value: formatCurrency(collectedKes), sub: `${collected._count} receipts issued`, icon: Wallet },
+    { label: "Arrears Outstanding", value: formatCurrency(outstandingKes), sub: `${outstandingCount} learners owing`, icon: AlertCircle },
+  ]
+
+  const links = [
+    { title: "Students", href: "/school/students" },
+    { title: "Attendance", href: "/school/attendance" },
+    { title: "Academics", href: "/school/academics" },
+    { title: "School Finance", href: "/school/finance" },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-bold">School Dashboard</h2>
-        <p className="text-sm text-muted-foreground">Term 2 · 2026 — key indicators at a glance</p>
+        <p className="text-sm text-muted-foreground">Term 3 · 2026 — live figures from the school ledger</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -41,7 +73,7 @@ export default function SchoolPage() {
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
                 <p className="text-xs text-muted-foreground">{metric.sub}</p>
               </div>
-              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
+              <metric.icon className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}
@@ -50,26 +82,34 @@ export default function SchoolPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>Attendance This Week</CardTitle>
-            <Link href="/school/attendance" className="flex items-center gap-1 text-xs font-medium text-anglican-blue-700 hover:underline">
-              Open register <ArrowRight className="h-3 w-3" />
+            <CardTitle>Recent Receipts</CardTitle>
+            <Link href="/school/finance" className="flex items-center gap-1 text-xs font-medium text-anglican-blue-700 hover:underline">
+              All payments <ArrowRight className="h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="flex h-44 items-end gap-4">
-              {attendance.map((day) => (
-                <div key={day.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">{day.rate}%</span>
-                  <div
-                    className="w-full rounded-t-md bg-anglican-blue-600"
-                    style={{ height: `${Math.round((day.rate / 100) * 112)}px` }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">{day.day}</span>
-                </div>
+            <ul className="divide-y divide-border">
+              {recentPayments.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <Receipt className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {p.student.firstName} {p.student.lastName}
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">{p.student.admissionNumber}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.receipt?.receiptNumber ?? "—"} · {p.method.replace(/_/g, " ")} · {new Date(p.transactionDate).toLocaleDateString("en-KE")}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold">{kes(p.amount)}</p>
+                </li>
               ))}
-            </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">Whole-school daily attendance, Term 2 week 7</p>
+              {recentPayments.length === 0 && (
+                <li className="py-6 text-center text-sm text-muted-foreground">No payments recorded yet.</li>
+              )}
+            </ul>
           </CardContent>
         </Card>
 
@@ -81,15 +121,17 @@ export default function SchoolPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">KSh 4.5M</p>
-            <p className="text-xs text-muted-foreground">of KSh 6.0M target (75%)</p>
+            <p className="text-3xl font-bold">{Math.min(collectionPct, 100)}%</p>
+            <p className="text-xs text-muted-foreground">of 2026 fees invoiced</p>
             <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-anglican-green-600" style={{ width: "75%" }} />
+              <div className="h-full rounded-full bg-anglican-green-600" style={{ width: `${collectionPct}%` }} />
             </div>
             <dl className="mt-4 space-y-1 text-sm">
-              <div className="flex justify-between"><dt className="text-muted-foreground">Collected</dt><dd className="font-medium">KSh 4,500,000</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Outstanding</dt><dd className="font-medium text-destructive">KSh 1,500,000</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Collected</dt><dd className="font-medium">{formatCurrency(collectedKes)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Invoiced</dt><dd className="font-medium">{formatCurrency(invoicedKes)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Arrears</dt><dd className="font-medium text-destructive">{formatCurrency(outstandingKes)}</dd></div>
             </dl>
+            <p className="mt-3 text-[11px] text-muted-foreground">Collected can exceed 100% where learners overpaid; arrears exclude credit balances.</p>
           </CardContent>
         </Card>
       </div>

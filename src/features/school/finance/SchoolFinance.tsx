@@ -1,5 +1,6 @@
 /* School Finance - SaintsHub School Portal
- * Provides: Fee structure overview, payment history, record-payment form
+ * Fee structure, collection stats, payment history and record-payment form.
+ * Data comes from /api/school/finance and /api/school/finance/payments (live DB).
  */
 "use client"
 
@@ -16,10 +17,19 @@ import { TableSkeleton } from "@/components/ui/skeleton"
 interface FeeStructure {
   id: string
   name: string
+  description: string
   amount: number
   frequency: "ONCE" | "TERMLY" | "ANNUAL" | "MONTHLY"
   isMandatory: boolean
   applicableGrades: string[]
+}
+
+interface FinanceStats {
+  invoiced: number
+  collected: number
+  outstanding: number
+  remainingNet: number
+  overdueStudents: number
 }
 
 interface FeePayment {
@@ -27,30 +37,45 @@ interface FeePayment {
   studentName: string
   admissionNumber: string
   amount: number
-  paymentMethod: "MPESA_STK_PUSH" | "BANK_DEPOSIT" | "CASH" | "CHEQUE"
+  paymentMethod: "CASH" | "MPESA" | "BANK_TRANSFER" | "CHEQUE" | "CARD" | "WALLET" | "ONLINE" | "IN_KIND"
   paymentDate: string
   receiptNumber: string
-  status: "PENDING" | "COMPLETED" | "FAILED"
+  status: "COMPLETED"
 }
 
-const PAYMENT_STATUS_VARIANT: Record<FeePayment["status"], "warning" | "success" | "destructive"> = {
-  PENDING: "warning",
-  COMPLETED: "success",
-  FAILED: "destructive",
+const METHOD_LABEL: Record<FeePayment["paymentMethod"], string> = {
+  CASH: "Cash",
+  MPESA: "M-Pesa",
+  BANK_TRANSFER: "Bank",
+  CHEQUE: "Cheque",
+  CARD: "Card",
+  WALLET: "Wallet",
+  ONLINE: "Online",
+  IN_KIND: "In kind",
+}
+
+async function readApi(res: Response): Promise<any> {
+  try {
+    return await res.json()
+  } catch {
+    return null
+  }
 }
 
 export function SchoolFinance() {
-  const [status, setStatus] = useState("")
+  const [method, setMethod] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [feeStructure, setFeeStructure] = useState<FeeStructure[]>([])
+  const [stats, setStats] = useState<FinanceStats | null>(null)
   const [payments, setPayments] = useState<FeePayment[]>([])
   const [loading, setLoading] = useState(true)
 
   const [recordAdmission, setRecordAdmission] = useState("")
   const [recordAmount, setRecordAmount] = useState("")
-  const [recordMethod, setRecordMethod] = useState("MPESA_STK_PUSH")
+  const [recordMethod, setRecordMethod] = useState<FeePayment["paymentMethod"]>("CASH")
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -59,12 +84,14 @@ export function SchoolFinance() {
         fetch("/api/school/finance", { cache: "no-store" }),
         fetch("/api/school/finance/payments", { cache: "no-store" }),
       ])
-      const feeBody = await feeRes.json().catch(() => null)
-      const paymentBody = await paymentRes.json().catch(() => null)
-      setFeeStructure(feeBody?.data?.feeStructure ?? feeBody?.data ?? [])
+      const feeBody = await readApi(feeRes)
+      const paymentBody = await readApi(paymentRes)
+      setFeeStructure(feeBody?.data?.feeStructure ?? [])
+      setStats(feeBody?.data?.stats ?? null)
       setPayments(paymentBody?.data ?? [])
     } catch {
       setFeeStructure([])
+      setStats(null)
       setPayments([])
     } finally {
       setLoading(false)
@@ -76,7 +103,7 @@ export function SchoolFinance() {
   }, [fetchAll])
 
   const visiblePayments = payments.filter((payment) => {
-    if (status && payment.status !== status) return false
+    if (method && payment.paymentMethod !== method) return false
     if (searchTerm) {
       const q = searchTerm.toLowerCase()
       if (
@@ -94,24 +121,29 @@ export function SchoolFinance() {
     e.preventDefault()
     setSaving(true)
     setMessage(null)
+    setError(null)
     try {
       const res = await fetch("/api/school/finance/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          admissionNumber: recordAdmission,
+          admissionNumber: recordAdmission.trim(),
           amount: Number(recordAmount),
           paymentMethod: recordMethod,
         }),
       })
-      setMessage(res.ok ? "Payment recorded." : "Could not record payment.")
-      if (res.ok) {
+      const body = await readApi(res)
+      if (res.ok && body?.success) {
+        setMessage(`Payment recorded — receipt ${body.data?.receiptNumber ?? "issued"}.`)
         setRecordAdmission("")
         setRecordAmount("")
+        setRecordMethod("CASH")
         fetchAll()
+      } else {
+        setError(body?.error ?? "Could not record payment.")
       }
     } catch {
-      setMessage("Could not record payment.")
+      setError("Could not record payment.")
     } finally {
       setSaving(false)
     }
@@ -121,19 +153,39 @@ export function SchoolFinance() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-bold">School Finance</h2>
-        <p className="text-sm text-muted-foreground">Fee structure, payments and collections</p>
+        <p className="text-sm text-muted-foreground">Fee structures, collections and receipts — all figures from the live ledger</p>
       </div>
+
+      {stats && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Invoiced (2026)</p>
+            <p className="mt-1 text-2xl font-bold">{formatCurrency(stats.invoiced)}</p>
+            <p className="text-xs text-muted-foreground">annual fees billed across all grades</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Collected</p>
+            <p className="mt-1 text-2xl font-bold text-anglican-green-700">{formatCurrency(stats.collected)}</p>
+            <p className="text-xs text-muted-foreground">all payments received to date</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Outstanding</p>
+            <p className="mt-1 text-2xl font-bold text-destructive">{formatCurrency(stats.outstanding)}</p>
+            <p className="text-xs text-muted-foreground">{stats.overdueStudents} learner{stats.overdueStudents === 1 ? "" : "s"} with arrears</p>
+          </Card>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Fee Structure</CardTitle>
+          <CardTitle>Fee Structure — 2026</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Fee</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Amount / yr</TableHead>
                 <TableHead className="text-center">Frequency</TableHead>
                 <TableHead className="text-center">Mandatory</TableHead>
                 <TableHead>Grades</TableHead>
@@ -142,7 +194,10 @@ export function SchoolFinance() {
             <TableBody>
               {feeStructure.map((fs) => (
                 <TableRow key={fs.id}>
-                  <TableCell className="font-medium">{fs.name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{fs.name}</div>
+                    <div className="text-xs text-muted-foreground">{fs.description}</div>
+                  </TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(fs.amount)}</TableCell>
                   <TableCell className="text-center">{fs.frequency}</TableCell>
                   <TableCell className="text-center">
@@ -160,12 +215,13 @@ export function SchoolFinance() {
           {!loading && feeStructure.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No fee structure configured yet.</p>
           )}
+          {loading && <TableSkeleton columns={5} rows={6} />}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Payment History</CardTitle>
+          <CardTitle>Payment History <span className="text-sm font-normal text-muted-foreground">(latest 100)</span></CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="search"
@@ -175,13 +231,17 @@ export function SchoolFinance() {
               className="w-full sm:w-64"
               aria-label="Search payments"
             />
-            <Select onValueChange={(e) => setStatus(e.target.value)} defaultValue="" name="status" aria-label="Filter by status">
-              <SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger>
+            <Select onValueChange={(e) => setMethod(e.target.value)} defaultValue="" name="method" aria-label="Filter by method">
+              <SelectTrigger><SelectValue placeholder="All methods" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
+                <SelectItem value="">All methods</SelectItem>
+                <SelectItem value="CASH">Cash</SelectItem>
+                <SelectItem value="MPESA">M-Pesa</SelectItem>
+                <SelectItem value="BANK_TRANSFER">Bank</SelectItem>
+                <SelectItem value="CHEQUE">Cheque</SelectItem>
+                <SelectItem value="IN_KIND">In kind</SelectItem>
+                <SelectItem value="CARD">Card</SelectItem>
+                <SelectItem value="ONLINE">Online</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -205,15 +265,13 @@ export function SchoolFinance() {
                     <div className="text-xs text-muted-foreground">{payment.admissionNumber}</div>
                   </TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(payment.amount)}</TableCell>
-                  <TableCell className="text-center">{payment.paymentMethod}</TableCell>
+                  <TableCell className="text-center">{METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod}</TableCell>
                   <TableCell className="text-center">
                     <div className="font-medium">{payment.receiptNumber}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(payment.paymentDate).toLocaleDateString()}</div>
+                    <div className="text-xs text-muted-foreground">{new Date(payment.paymentDate).toLocaleDateString("en-KE")}</div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={PAYMENT_STATUS_VARIANT[payment.status] ?? "secondary"} size="sm">
-                      {payment.status}
-                    </Badge>
+                    <Badge variant="success" size="sm">{payment.status}</Badge>
                   </TableCell>
                 </TableRow>
               ))}
@@ -222,7 +280,7 @@ export function SchoolFinance() {
           {!loading && visiblePayments.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No payments found.</p>
           )}
-          {loading && <TableSkeleton columns={6} rows={5} />}
+          {loading && <TableSkeleton columns={5} rows={8} />}
         </CardContent>
       </Card>
 
@@ -234,21 +292,24 @@ export function SchoolFinance() {
           <form onSubmit={handleRecordPayment} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label htmlFor="admissionNumber" className="mb-1 block text-xs font-medium text-muted-foreground">Admission Number</label>
-              <Input id="admissionNumber" name="admissionNumber" value={recordAdmission} onValueChange={setRecordAdmission} placeholder="e.g. STD-2024-001" required />
+              <Input id="admissionNumber" name="admissionNumber" value={recordAdmission} onValueChange={setRecordAdmission} placeholder="e.g. 1251" required />
             </div>
             <div>
               <label htmlFor="amount" className="mb-1 block text-xs font-medium text-muted-foreground">Amount (KES)</label>
-              <Input id="amount" name="amount" type="number" min={1} value={recordAmount} onValueChange={setRecordAmount} placeholder="0" required />
+              <Input id="amount" name="amount" type="number" min={1} step="0.01" value={recordAmount} onValueChange={setRecordAmount} placeholder="0" required />
             </div>
             <div>
               <label htmlFor="paymentMethod" className="mb-1 block text-xs font-medium text-muted-foreground">Payment Method</label>
-              <Select onValueChange={(e) => setRecordMethod(e.target.value)} defaultValue="MPESA_STK_PUSH" name="paymentMethod">
+              <Select onValueChange={(e) => setRecordMethod(e.target.value as FeePayment["paymentMethod"])} defaultValue="CASH" name="paymentMethod">
                 <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MPESA_STK_PUSH">M-Pesa STK Push</SelectItem>
-                  <SelectItem value="BANK_DEPOSIT">Bank Deposit</SelectItem>
                   <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="MPESA">M-Pesa</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">Bank Deposit</SelectItem>
                   <SelectItem value="CHEQUE">Cheque</SelectItem>
+                  <SelectItem value="IN_KIND">In kind</SelectItem>
+                  <SelectItem value="CARD">Card</SelectItem>
+                  <SelectItem value="ONLINE">Online</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -256,9 +317,10 @@ export function SchoolFinance() {
               <Button type="submit" variant="primary" disabled={saving} loading={saving}>
                 {saving ? "Recording…" : "Record Payment"}
               </Button>
-              {message && <p className="ml-3 self-center text-sm text-muted-foreground">{message}</p>}
             </div>
           </form>
+          {message && <p className="mt-3 text-sm text-anglican-green-700">{message}</p>}
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
     </div>

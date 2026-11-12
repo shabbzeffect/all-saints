@@ -1,145 +1,67 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
 
-interface FeeStructureItem {
-  id: string
-  name: string
-  description: string
-  amount: number
-  frequency: "ONCE" | "TERMLY" | "ANNUAL" | "MONTHLY"
-  isMandatory: boolean
-  applicableGrades: string[]
-  wing: "SCHOOL" | "PARISH"
-}
+const centsToKes = (v: unknown) => Number(v ?? 0) / 100
 
-interface FeePayment {
-  id: string
-  studentId: string
-  admissionNumber: string
-  studentName: string
-  feeStructureId: string
-  amount: number
-  paymentMethod: "MPESA_STK_PUSH" | "BANK_DEPOSIT" | "CASH" | "CHEQUE"
-  paymentDate: string
-  receiptNumber: string
-  status: "PENDING" | "COMPLETED" | "FAILED"
-  acknowledged: boolean
-}
-
-interface FinanceFilter {
-  grade?: string
-  mandatory?: boolean
-  searchTerm?: string
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || "inst-school-1"
-    const grade = searchParams.get("grade")
-    const mandatory = searchParams.get("mandatory") === "true"
-    const searchTerm = searchParams.get("search") || ""
+    const permissionCheck = await requirePermission("portal:staff:read")
+    if (permissionCheck) return permissionCheck
 
-    // Mock fee structure
-    const mockFeeStructure: FeeStructureItem[] = [
-      {
-        id: "fee-001",
-        name: "Tuition Fee",
-        description: "Annual tuition fee divided into 3 terms",
-        amount: 30000,
-        frequency: "TERMLY",
-        isMandatory: true,
-        applicableGrades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"],
-        wing: "SCHOOL",
-      },
-      {
-        id: "fee-002",
-        name: "Activity Fee",
-        description: "Termly activity and sports fee",
-        amount: 5000,
-        frequency: "TERMLY",
-        isMandatory: true,
-        applicableGrades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8"],
-        wing: "SCHOOL",
-      },
-      {
-        id: "fee-003",
-        name: "Boarding Fee",
-        description: "Full boarding fee per term",
-        amount: 25000,
-        frequency: "TERMLY",
-        isMandatory: true,
-        applicableGrades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"],
-        wing: "SCHOOL",
-      },
-      {
-        id: "fee-004",
-        name: "Pledge Donation",
-        description: "Optional giving/pledge donation",
-        amount: 1000,
-        frequency: "ONCE",
-        isMandatory: false,
-        applicableGrades: [],
-        wing: "PARISH",
-      },
-    ]
-
-    let filteredFees = mockFeeStructure
-
-    if (grade) {
-      filteredFees = filteredFees.filter((f) => f.applicableGrades.includes(grade))
-    }
-    if (mandatory !== undefined) {
-      filteredFees = filteredFees.filter((f) => f.isMandatory === mandatory)
-    }
-    if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredFees = filteredFees.filter(
-        (f) => f.name.toLowerCase().includes(termLower) || f.description.toLowerCase().includes(termLower)
-      )
+    const institutionId = await scopedInstitutionId()
+    if (!institutionId) {
+      return NextResponse.json({ success: false, error: "No active membership" }, { status: 403 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: { feeStructure: filteredFees },
-    })
-  } catch (error) {
-    console.error("School finance error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch fee structure" },
-      { status: 500 }
+    const [feeStructures, invoiceStats, collectedStats, overdueStats] = await Promise.all([
+      prisma.feeStructure.findMany({
+        where: { institutionId },
+        include: {
+          grade: { select: { name: true } },
+          feeItems: true,
+        },
+        orderBy: { name: "asc" },
+      }),
+      prisma.invoice.aggregate({
+        where: { institutionId },
+        _sum: { totalAmount: true, amountRemaining: true },
+      }),
+      prisma.payment.aggregate({
+        where: { institutionId },
+        _sum: { amount: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { institutionId, amountRemaining: { gt: 0 } },
+        _sum: { amountRemaining: true },
+        _count: true,
+      }),
+    ])
+
+    const feeStructure = feeStructures.flatMap((fs) =>
+      fs.feeItems.map((item) => ({
+        id: item.id,
+        name: fs.name,
+        description: fs.description ?? item.name,
+        amount: centsToKes(item.amount),
+        frequency: "ANNUAL" as const,
+        isMandatory: true,
+        applicableGrades: fs.grade ? [fs.grade.name] : [],
+        itemType: item.type,
+      }))
     )
-  }
-}
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-
-    // Record fee payment
-    const newPayment: FeePayment = {
-      id: `pay-${Date.now().toString(36)}`,
-      studentId: body.studentId,
-      admissionNumber: body.admissionNumber || "",
-      studentName: body.studentName || "",
-      feeStructureId: body.feeStructureId,
-      amount: body.amount,
-      paymentMethod: body.paymentMethod || "MPESA_STK_PUSH",
-      paymentDate: new Date().toISOString(),
-      receiptNumber: `REC-${Date.now().toString(36).toUpperCase()}`,
-      status: "COMPLETED",
-      acknowledged: false,
+    const stats = {
+      invoiced: centsToKes(invoiceStats._sum.totalAmount),
+      collected: centsToKes(collectedStats._sum.amount),
+      outstanding: centsToKes(overdueStats._sum.amountRemaining),
+      remainingNet: centsToKes(invoiceStats._sum.amountRemaining),
+      overdueStudents: overdueStats._count,
     }
 
-    return NextResponse.json({
-      success: true,
-      data: newPayment,
-      message: "Fee payment recorded successfully",
-    })
+    return NextResponse.json({ success: true, data: { feeStructure, stats } })
   } catch (error) {
-    console.error("Record fee payment error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to record fee payment" },
-      { status: 500 }
-    )
+    console.error("School finance GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch fee structures" }, { status: 500 })
   }
 }
