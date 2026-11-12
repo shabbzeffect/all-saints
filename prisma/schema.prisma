@@ -691,6 +691,7 @@ model Institution {
   leaveTypes           LeaveType[]             @relation("InstitutionLeaveTypes")
   statutoryDeductions  StatutoryDeduction[]    @relation("InstitutionStatutoryDeductions")
   payrollRuns          PayrollRun[]            @relation("InstitutionPayrollRuns")
+  leaveAdjustments     LeaveBalanceAdjustment[] @relation("InstitutionLeaveBalanceAdjustments")
   salaryLoans          SalaryLoan[]            @relation("InstitutionSalaryLoans")
   consentPreferences   ConsentPreference[]     @relation("InstitutionConsentPreferences")
   dormitories          Dormitory[]             @relation("InstitutionDormitories")
@@ -1306,6 +1307,7 @@ model Staff {
   leaveRequests LeaveRequest[]
   payslips      Payslip[]
   loans         SalaryLoan[]
+  leaveAdjustments LeaveBalanceAdjustment[]
 
   @@unique([institutionId, userId])
   @@index([institutionId])
@@ -1335,6 +1337,7 @@ model LeaveType {
   key              String // e.g., "ANNUAL", "SICK", "MATERNITY", "PATERNITY", "COMPASSIONATE"
   name             String
   daysPerYear      Float    @default(21)
+  carryOverCap     Float    @default(0) // max days that may carry into the next year
   isPaid           Boolean  @default(true)
   requiresApproval Boolean  @default(true)
   createdAt        DateTime @default(now())
@@ -1342,6 +1345,7 @@ model LeaveType {
 
   institution   Institution    @relation("InstitutionLeaveTypes", fields: [institutionId], references: [id], onDelete: Cascade)
   leaveRequests LeaveRequest[]
+  adjustments   LeaveBalanceAdjustment[]
 
   @@unique([institutionId, key])
   @@index([institutionId])
@@ -1369,6 +1373,27 @@ model LeaveRequest {
   @@index([leaveTypeId])
   @@index([status])
   @@map("leave_requests")
+}
+
+model LeaveBalanceAdjustment {
+  id            String   @id @default(cuid())
+  institutionId String
+  staffId       String
+  leaveTypeId   String
+  year          Int      // calendar year the adjustment applies to
+  delta         Float    // positive credits days, negative debits them
+  reason        String
+  createdById   String? // user id of the admin who applied it
+  createdAt     DateTime @default(now())
+
+  institution Institution @relation("InstitutionLeaveBalanceAdjustments", fields: [institutionId], references: [id], onDelete: Cascade)
+  staff       Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@index([staffId, year])
+  @@index([leaveTypeId])
+  @@map("leave_balance_adjustments")
 }
 
 model EmergencyContact {
