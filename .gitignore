@@ -8,3 +8,5 @@ node_modules
 .impeccable/review/
 .impeccable/decision-round.json
 .impeccable/direction-contract.md
+
+.next
