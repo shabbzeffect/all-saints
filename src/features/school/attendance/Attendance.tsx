@@ -19,8 +19,6 @@ interface AttendanceRecord {
   grade: string
   date: string
   status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED"
-  period: string
-  subject: string
 }
 
 const STATUS_VARIANT: Record<AttendanceRecord["status"], "success" | "destructive" | "warning" | "secondary"> = {
@@ -36,24 +34,26 @@ export function Attendance() {
   const [searchTerm, setSearchTerm] = useState("")
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [studentId, setStudentId] = useState("")
   const [markDate, setMarkDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [markStatus, setMarkStatus] = useState("PRESENT")
-  const [markPeriod, setMarkPeriod] = useState("")
-  const [markSubject, setMarkSubject] = useState("")
   const [markMessage, setMarkMessage] = useState<string | null>(null)
   const [marking, setMarking] = useState(false)
 
   const fetchAttendance = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
-      const res = await fetch("/api/school/attendance?institutionId=inst-school-1", { cache: "no-store" })
+      const res = await fetch("/api/school/attendance", { cache: "no-store" })
       const body = await res.json().catch(() => null)
-      const list: AttendanceRecord[] = body?.data?.records ?? body?.records ?? []
+      if (!res.ok || body?.success === false) throw new Error(body?.error ?? "Could not load attendance")
+      const list: AttendanceRecord[] = body?.data?.records ?? []
       setRecords(list)
-    } catch {
+    } catch (e) {
       setRecords([])
+      setError(e instanceof Error ? e.message : "Could not load attendance")
     } finally {
       setLoading(false)
     }
@@ -62,6 +62,8 @@ export function Attendance() {
   useEffect(() => {
     fetchAttendance()
   }, [fetchAttendance])
+
+  const gradeOptions = Array.from(new Set(records.map((r) => r.grade))).sort()
 
   const visible = records.filter((record) => {
     if (grade && record.grade !== grade) return false
@@ -88,19 +90,14 @@ export function Attendance() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          institutionId: "inst-school-1",
           studentId,
           date: markDate,
           status: markStatus,
-          period: markPeriod,
-          subject: markSubject,
         }),
       })
       setMarkMessage(res.ok ? "Attendance recorded." : "Could not record attendance right now.")
       if (res.ok) {
         setStudentId("")
-        setMarkPeriod("")
-        setMarkSubject("")
         fetchAttendance()
       }
     } catch {
@@ -123,6 +120,10 @@ export function Attendance() {
         <h2 className="text-xl font-bold">Attendance</h2>
         <p className="text-sm text-muted-foreground">Daily student attendance across grades</p>
       </div>
+
+      {error && !loading && (
+        <Card className="p-4 text-sm text-destructive">{error}</Card>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {summaryCards.map((card) => (
@@ -149,7 +150,7 @@ export function Attendance() {
               <SelectTrigger><SelectValue placeholder="All grades" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All grades</SelectItem>
-                {Array.from({ length: 10 }, (_, i) => `Grade ${i + 1}`).map((g) => (
+                {gradeOptions.map((g) => (
                   <SelectItem key={g} value={g}>{g}</SelectItem>
                 ))}
               </SelectContent>
@@ -174,7 +175,6 @@ export function Attendance() {
                 <TableHead>Student</TableHead>
                 <TableHead className="text-center">Grade</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead>Period / Subject</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -189,10 +189,6 @@ export function Attendance() {
                   <TableCell className="text-center">
                     <Badge variant={STATUS_VARIANT[record.status] ?? "secondary"} size="sm">{record.status}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm">Period {record.period}</span>
-                    <span className="block text-xs text-muted-foreground">{record.subject}</span>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -200,7 +196,7 @@ export function Attendance() {
           {!loading && visible.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">No attendance records found.</p>
           )}
-          {loading && <TableSkeleton columns={6} rows={5} />}
+          {loading && <TableSkeleton columns={4} rows={5} />}
         </CardContent>
       </Card>
 
@@ -210,7 +206,7 @@ export function Attendance() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleMarkAttendance} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 lg:col-span-4">
               <label htmlFor="studentId" className="mb-1 block text-xs font-medium text-muted-foreground">Student ID</label>
               <Input id="studentId" name="studentId" value={studentId} onValueChange={setStudentId} placeholder="Student ID or admission number" required />
             </div>
@@ -229,14 +225,6 @@ export function Attendance() {
                   <SelectItem value="EXCUSED">Excused</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label htmlFor="period" className="mb-1 block text-xs font-medium text-muted-foreground">Period</label>
-              <Input id="period" name="period" type="number" min={1} value={markPeriod} onValueChange={setMarkPeriod} placeholder="e.g. 1" />
-            </div>
-            <div>
-              <label htmlFor="subject" className="mb-1 block text-xs font-medium text-muted-foreground">Subject</label>
-              <Input id="subject" name="subject" value={markSubject} onValueChange={setMarkSubject} placeholder="e.g. Mathematics" />
             </div>
             <div className="flex items-end sm:col-span-2 lg:col-span-6">
               <Button type="submit" variant="primary" loading={marking} disabled={marking}>
