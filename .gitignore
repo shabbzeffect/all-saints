@@ -14,3 +14,5 @@ node_modules
 tmp-*.ts
 tmp-*.py
 tmp-import-data.json
+
+tsconfig.tsbuildinfo
