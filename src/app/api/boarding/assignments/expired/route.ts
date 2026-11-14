@@ -1,59 +1,59 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
 
-interface ExpiredAssignment {
+export const dynamic = "force-dynamic"
+
+const DAY_MS = 86_400_000
+
+const toDto = (a: {
   id: string
   studentId: string
-  studentName: string
-  studentAdmission: string
-  grade: string
-  roomNumber: string
-  dormitoryName: string
-  leaseEnd: string
-  daysOverdue: number
-  status: "EXPIRED"
-}
+  leaseEnd: Date | null
+  student: { firstName: string; lastName: string; admissionNumber: string | null; grade: { name: string } | null }
+  room: { roomNumber: string; dormitory: { name: string } }
+}) => ({
+  id: a.id,
+  studentId: a.studentId,
+  studentName: `${a.student.firstName} ${a.student.lastName}`.trim(),
+  admissionNumber: a.student.admissionNumber ?? "",
+  grade: a.student.grade?.name ?? "(unassigned)",
+  roomNumber: a.room.roomNumber,
+  dormitoryName: a.room.dormitory.name,
+  leaseEnd: a.leaseEnd ? a.leaseEnd.toISOString().slice(0, 10) : null,
+  daysOverdue: a.leaseEnd ? Math.max(0, Math.floor((Date.now() - a.leaseEnd.getTime()) / DAY_MS)) : 0,
+  status: "EXPIRED" as const,
+})
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
+    const permissionCheck = await requirePermission("portal:staff:read")
+    if (permissionCheck) return permissionCheck
 
-    // Mock expired assignments data
-    const mockAssignments: ExpiredAssignment[] = [
-      {
-        id: "expired-001",
-        studentId: "std-001",
-        studentName: "John Omondi",
-        studentAdmission: "ADM-2024-001",
-        grade: "Grade 7",
-        roomNumber: "R-101",
-        dormitoryName: "Boys' House",
-        leaseEnd: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        daysOverdue: 30,
-        status: "EXPIRED",
-      },
-      {
-        id: "expired-002",
-        studentId: "std-002",
-        studentName: "Jane Doe",
-        studentAdmission: "ADM-2024-002",
-        grade: "Grade 8",
-        roomNumber: "R-102",
-        dormitoryName: "Boys' House",
-        leaseEnd: new Date(Date.now() - 172800000).toISOString().split("T")[0],
-        daysOverdue: 60,
-        status: "EXPIRED",
-      },
-    ]
+    const institutionId = await scopedInstitutionId()
+    if (!institutionId) {
+      return NextResponse.json({ success: false, error: "No active membership" }, { status: 403 })
+    }
 
-    return NextResponse.json({
-      success: true,
-      data: mockAssignments,
+    const now = new Date()
+    const assignments = await prisma.roomAssignment.findMany({
+      where: {
+        leaseEnd: { lt: now },
+        room: { dormitory: { institutionId } },
+      },
+      include: {
+        student: {
+          select: { firstName: true, lastName: true, admissionNumber: true, grade: { select: { name: true } } },
+        },
+        room: { select: { roomNumber: true, dormitory: { select: { name: true } } } },
+      },
+      orderBy: { leaseEnd: "asc" },
+      take: 200,
     })
+
+    return NextResponse.json({ success: true, data: assignments.map(toDto) })
   } catch (error) {
-    console.error("Expired assignments error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch expired assignments" },
-      { status: 500 }
-    )
+    console.error("Expired assignments GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch expired assignments" }, { status: 500 })
   }
 }

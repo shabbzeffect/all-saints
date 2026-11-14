@@ -59,7 +59,7 @@ export function BoardingDashboard() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
               </div>
-              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
+              <metric.icon className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}

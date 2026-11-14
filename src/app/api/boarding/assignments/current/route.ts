@@ -1,82 +1,86 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
 
-interface CurrentAssignment {
+export const dynamic = "force-dynamic"
+
+const DAY_MS = 86_400_000
+
+const toDto = (a: {
   id: string
   roomId: string
   studentId: string
-  studentName: string
-  studentAdmission: string
-  grade: string
-  roomNumber: string
-  dormitoryName: string
-  leaseStart: string
-  leaseEnd: string
+  leaseStart: Date
+  leaseEnd: Date | null
   isCurrent: boolean
   rentAmount: number
-  daysRemaining: number
-  status: "ACTIVE" | "EXPIRING_Soon" | "EXPIRED"
+  assignedAt: Date
+  student: { firstName: string; lastName: string; admissionNumber: string | null; grade: { name: string } | null }
+  room: { roomNumber: string; dormitory: { name: string } }
+}) => {
+  const now = Date.now()
+  const leaseEnd = a.leaseEnd
+  const daysRemaining = leaseEnd ? Math.max(0, Math.ceil((leaseEnd.getTime() - now) / DAY_MS)) : null
+  const status = !leaseEnd
+    ? ("ACTIVE" as const)
+    : leaseEnd.getTime() < now
+      ? ("EXPIRED" as const)
+      : daysRemaining !== null && daysRemaining <= 14
+        ? ("EXPIRING_SOON" as const)
+        : ("ACTIVE" as const)
+
+  return {
+    id: a.id,
+    roomId: a.roomId,
+    studentId: a.studentId,
+    studentName: `${a.student.firstName} ${a.student.lastName}`.trim(),
+    admissionNumber: a.student.admissionNumber ?? "",
+    grade: a.student.grade?.name ?? "(unassigned)",
+    roomNumber: a.room.roomNumber,
+    dormitoryName: a.room.dormitory.name,
+    leaseStart: a.leaseStart.toISOString().slice(0, 10),
+    leaseEnd: leaseEnd ? leaseEnd.toISOString().slice(0, 10) : null,
+    isCurrent: a.isCurrent,
+    rentAmount: a.rentAmount,
+    daysRemaining,
+    status,
+  }
 }
 
 export async function GET(request: Request) {
   try {
+    const permissionCheck = await requirePermission("portal:staff:read")
+    if (permissionCheck) return permissionCheck
+
+    const institutionId = await scopedInstitutionId()
+    if (!institutionId) {
+      return NextResponse.json({ success: false, error: "No active membership" }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
-    const studentId = searchParams.get("studentId")
-    const roomId = searchParams.get("roomId")
+    const studentId = searchParams.get("studentId") ?? undefined
+    const roomId = searchParams.get("roomId") ?? undefined
 
-    // Mock current assignment data
-    const mockAssignments: CurrentAssignment[] = [
-      {
-        id: "curr-001",
-        roomId: "room-001",
-        studentId: "std-001",
-        studentName: "John Omondi",
-        studentAdmission: "ADM-2024-001",
-        grade: "Grade 7",
-        roomNumber: "R-101",
-        dormitoryName: "Boys' House",
-        leaseStart: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() + 604800000).toISOString().split("T")[0],
+    const assignments = await prisma.roomAssignment.findMany({
+      where: {
         isCurrent: true,
-        rentAmount: 50000,
-        daysRemaining: 30,
-        status: "ACTIVE",
+        room: { dormitory: { institutionId } },
+        ...(studentId ? { studentId } : {}),
+        ...(roomId ? { roomId } : {}),
       },
-      {
-        id: "curr-002",
-        roomId: "room-002",
-        studentId: "std-003",
-        studentName: "Peter Omondi",
-        studentAdmission: "ADM-2024-003",
-        grade: "Grade 9",
-        roomNumber: "R-103",
-        dormitoryName: "Boys' House",
-        leaseStart: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-        leaseEnd: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        isCurrent: true,
-        rentAmount: 80000,
-        daysRemaining: 45,
-        status: "ACTIVE",
+      include: {
+        student: {
+          select: { firstName: true, lastName: true, admissionNumber: true, grade: { select: { name: true } } },
+        },
+        room: { select: { roomNumber: true, dormitory: { select: { name: true } } } },
       },
-    ]
-
-    let filteredAssignments = mockAssignments
-
-    if (studentId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.studentId === studentId)
-    }
-    if (roomId) {
-      filteredAssignments = filteredAssignments.filter((a) => a.roomId === roomId)
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: filteredAssignments,
+      orderBy: { leaseStart: "desc" },
+      take: 500,
     })
+
+    return NextResponse.json({ success: true, data: assignments.map(toDto) })
   } catch (error) {
-    console.error("Current assignment error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch current assignment" },
-      { status: 500 }
-    )
+    console.error("Current assignments GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch current assignments" }, { status: 500 })
   }
 }

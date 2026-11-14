@@ -1,62 +1,50 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
 
-interface PendingExeatPass {
-  id: string
-  studentId: string
-  studentName: string
-  studentAdmission: string
-  grade: string
-  reason: string
-  startDate: string
-  endDate: string
-  requestedBy: string
-  requestedAt: string
-  status: "PENDING"
-}
+export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
+    const permissionCheck = await requirePermission("portal:staff:read")
+    if (permissionCheck) return permissionCheck
 
-    // Mock pending exeat passes
-    const mockPasses: PendingExeatPass[] = [
-      {
-        id: "exeat-pending-001",
-        studentId: "std-002",
-        studentName: "Jane Doe",
-        studentAdmission: "ADM-2024-002",
-        grade: "Grade 8",
-        reason: "Medical appointment",
-        startDate: new Date(Date.now()).toISOString().split("T")[0],
-        endDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        requestedBy: "staff-001",
-        requestedAt: new Date(Date.now() - 86400000).toISOString(),
-        status: "PENDING",
-      },
-      {
-        id: "exeat-pending-002",
-        studentId: "std-003",
-        studentName: "Peter Omondi",
-        studentAdmission: "ADM-2024-003",
-        grade: "Grade 9",
-        reason: "Family wedding",
-        startDate: new Date(Date.now() + 172800000).toISOString().split("T")[0],
-        endDate: new Date(Date.now() + 259200000).toISOString().split("T")[0],
-        requestedBy: "parent-001",
-        requestedAt: new Date(Date.now() - 86400000).toISOString(),
-        status: "PENDING",
-      },
-    ]
+    const institutionId = await scopedInstitutionId()
+    if (!institutionId) {
+      return NextResponse.json({ success: false, error: "No active membership" }, { status: 403 })
+    }
 
-    return NextResponse.json({
-      success: true,
-      data: mockPasses,
+    const passes = await prisma.exeatPass.findMany({
+      where: { student: { institutionId } },
+      include: {
+        student: {
+          select: { firstName: true, lastName: true, admissionNumber: true, grade: { select: { name: true } } },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
     })
+
+    const data = passes.map((p) => ({
+      id: p.id,
+      studentId: p.studentId,
+      requestedBy: p.requestedBy,
+      reason: p.reason,
+      startDate: p.startDate.toISOString().slice(0, 10),
+      endDate: p.endDate.toISOString().slice(0, 10),
+      status: p.status,
+      approvedBy: p.approvedBy,
+      approvedAt: p.approvedAt?.toISOString() ?? null,
+      createdAt: p.createdAt.toISOString(),
+      studentName: `${p.student.firstName} ${p.student.lastName}`.trim(),
+      admissionNumber: p.student.admissionNumber ?? "",
+      grade: p.student.grade?.name ?? "(unassigned)",
+      daysRequested: Math.max(1, Math.round((p.endDate.getTime() - p.startDate.getTime()) / 86_400_000) + 1),
+    }))
+
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error("Pending exeat passes error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch pending exeat passes" },
-      { status: 500 }
-    )
+    console.error("Pending exeat passes GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch pending exeat passes" }, { status: 500 })
   }
 }

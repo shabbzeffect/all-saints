@@ -36,9 +36,7 @@ export function ExeatPassManager() {
   const [statusFilter, setStatusFilter] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
 
-  const [studentName, setStudentName] = useState("")
   const [admissionNumber, setAdmissionNumber] = useState("")
-  const [grade, setGrade] = useState("Grade 7")
   const [reason, setReason] = useState("")
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState("")
@@ -70,11 +68,10 @@ export function ExeatPassManager() {
       const res = await fetch("/api/boarding/exeat-passes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentName, admissionNumber, grade, reason, startDate, endDate }),
+        body: JSON.stringify({ admissionNumber, reason, startDate, endDate }),
       })
       setMessage(res.ok ? "Exeat pass requested." : "Could not submit request.")
       if (res.ok) {
-        setStudentName("")
         setAdmissionNumber("")
         setReason("")
         setEndDate("")
@@ -92,7 +89,7 @@ export function ExeatPassManager() {
       const res = await fetch(`/api/boarding/exeat-passes/approve?id=${encodeURIComponent(passId)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, approvedBy: "principal-001" }),
+        body: JSON.stringify({ status }),
       })
       if (res.ok) {
         setPasses((prev) => prev.map((p) => (p.id === passId ? { ...p, status } : p)))
@@ -124,24 +121,9 @@ export function ExeatPassManager() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div className="sm:col-span-2">
-              <label htmlFor="studentName" className="mb-1 block text-xs font-medium text-muted-foreground">Student Name</label>
-              <Input id="studentName" name="studentName" value={studentName} onValueChange={setStudentName} placeholder="Full name" required />
-            </div>
-            <div>
+            <div className="sm:col-span-2 lg:col-span-2">
               <label htmlFor="admissionNumber" className="mb-1 block text-xs font-medium text-muted-foreground">Admission No.</label>
-              <Input id="admissionNumber" name="admissionNumber" value={admissionNumber} onValueChange={setAdmissionNumber} placeholder="e.g. ADM-2024-001" required />
-            </div>
-            <div>
-              <label htmlFor="grade" className="mb-1 block text-xs font-medium text-muted-foreground">Grade</label>
-              <Select onValueChange={(e) => setGrade(e.target.value)} defaultValue="Grade 7" name="grade">
-                <SelectTrigger><SelectValue placeholder="Grade" /></SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 6 }, (_, i) => `Grade ${i + 7}`).map((g) => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input id="admissionNumber" name="admissionNumber" value={admissionNumber} onValueChange={setAdmissionNumber} placeholder="e.g. 1180" required />
             </div>
             <div>
               <label htmlFor="startDate" className="mb-1 block text-xs font-medium text-muted-foreground">Start Date</label>

@@ -1,5 +1,5 @@
 /* BoardingFees - SaintsHub Boarding Module
- * Boarding fee billing: records, status filter, process-payment modal
+ * Boarding fee billing: live invoice-line records, status filter, search
  */
 "use client"
 
@@ -7,9 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { formatCurrency } from "@/lib/config"
 import { TableSkeleton } from "@/components/ui/skeleton"
@@ -18,7 +16,7 @@ interface BillingRecord {
   id: string
   studentId: string
   studentName: string
-  studentAdmission: string
+  admissionNumber: string
   feeName: string
   amount: number
   period: string
@@ -40,11 +38,6 @@ export function BoardingFees() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-
-  const [paymentTarget, setPaymentTarget] = useState<BillingRecord | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState("mpesa")
-  const [transactionId, setTransactionId] = useState("")
-  const [processing, setProcessing] = useState(false)
 
   const fetchBilling = useCallback(async () => {
     setLoading(true)
@@ -86,22 +79,7 @@ export function BoardingFees() {
     .filter((b) => b.status === "PAID")
     .reduce((sum, b) => sum + b.amount, 0)
 
-  const processPayment = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!paymentTarget || !paymentMethod || !transactionId.trim()) return
-    setProcessing(true)
-    const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`
-    setBilling((prev) =>
-      prev.map((b) =>
-        b.id === paymentTarget.id
-          ? { ...b, status: "PAID", paidDate: new Date().toISOString().slice(0, 10), paymentMethod, receiptNumber }
-          : b
-      )
-    )
-    setProcessing(false)
-    setPaymentTarget(null)
-    setTransactionId("")
-  }
+
 
   return (
     <div className="space-y-6">
@@ -162,7 +140,7 @@ export function BoardingFees() {
                 <TableRow key={record.id}>
                   <TableCell>
                     <div className="font-medium">{record.studentName}</div>
-                    <div className="text-xs text-muted-foreground">{record.studentAdmission}</div>
+                    <div className="text-xs text-muted-foreground">{record.admissionNumber}</div>
                   </TableCell>
                   <TableCell>{record.feeName}</TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(record.amount)}</TableCell>
@@ -173,11 +151,9 @@ export function BoardingFees() {
                   </TableCell>
                   <TableCell className="text-right">
                     {record.status !== "PAID" ? (
-                      <Button size="sm" variant="primary" onClick={() => setPaymentTarget(record)}>
-                        Pay now
-                      </Button>
+                      <span className="text-xs text-muted-foreground">Pay at school office</span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Paid {record.paidDate}</span>
+                      <span className="text-xs text-muted-foreground">Paid {record.paidDate?.slice(0, 10)}</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -191,52 +167,6 @@ export function BoardingFees() {
         </CardContent>
       </Card>
 
-      {paymentTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" aria-hidden="true" onClick={() => setPaymentTarget(null)} />
-          <Card className="relative z-10 w-full max-w-md shadow-2xl">
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle>Pay — {paymentTarget.studentName}</CardTitle>
-              <button className="rounded-md p-1.5 hover:bg-accent" onClick={() => setPaymentTarget(null)} aria-label="Close">
-                <X className="h-4 w-4" />
-              </button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={processPayment} className="space-y-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount Due</p>
-                  <p className="text-2xl font-bold">{formatCurrency(paymentTarget.amount)}</p>
-                </div>
-                <div>
-                  <label htmlFor="paymentMethod" className="mb-1 block text-xs font-medium text-muted-foreground">Payment Method</label>
-                  <Select onValueChange={(e) => setPaymentMethod(e.target.value)} defaultValue="mpesa" name="paymentMethod">
-                    <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mpesa">M-Pesa STK Push</SelectItem>
-                      <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="card">Card Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label htmlFor="transactionId" className="mb-1 block text-xs font-medium text-muted-foreground">Transaction ID</label>
-                  <Input
-                    id="transactionId"
-                    name="transactionId"
-                    value={transactionId}
-                    onValueChange={setTransactionId}
-                    placeholder="e.g. QHX2AB1234"
-                    required
-                  />
-                </div>
-                <Button type="submit" variant="primary" className="w-full" disabled={processing} loading={processing}>
-                  {processing ? "Processing…" : "Process Payment"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,144 +1,120 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { requirePermission, scopedInstitutionId } from "@/server/rbac"
+import type { InvoiceStatus } from "@prisma/client"
 
-interface StudentAssignment {
-  id: string
-  roomId: string
-  roomNumber: string
-  dormitoryName: string
-  studentId: string
-  studentName: string
-  studentAdmission: string
-  grade: string
-  leaseStart: string
-  leaseEnd: string
-  isCurrent: boolean
-  rentAmount: number
-  daysRemaining: number
-  status: "ACTIVE" | "EXPIRED" | "TERMINATED"
-  assignedAt: string
-  assignedBy: string
-}
+export const dynamic = "force-dynamic"
 
-interface StudentDetails {
-  id: string
-  studentName: string
-  studentAdmission: string
-  grade: string
-  gender: "MALE" | "FEMALE"
-  dateOfBirth: string
-  address: string
-  contactNumber: string
-  emergencyContact: string
-  parentGuardianName: string
-  parentGuardianContact: string
-  religion: string
-  nationality: string
-  profileImage?: string
-}
+const DAY_MS = 86_400_000
 
-interface StudentBilling {
-  id: string
-  feeId: string
-  feeName: string
-  amount: number
-  period: string
-  dueDate: string
-  status: "PENDING" | "PAID" | "OVERDUE"
-  paidDate?: string
-  paymentMethod?: string
-  receiptNumber?: string
-}
-
-interface StudentProfile {
-  student: StudentDetails
-  currentAssignment: StudentAssignment | null
-  billingHistory: StudentBilling[]
-}
+const billingStatus = (status: InvoiceStatus): "PENDING" | "PAID" | "OVERDUE" =>
+  status === "PAID" ? "PAID" : status === "OVERDUE" ? "OVERDUE" : "PENDING"
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const studentId = searchParams.get("studentId") || ""
+    const permissionCheck = await requirePermission("portal:staff:read")
+    if (permissionCheck) return permissionCheck
 
-    // Mock student details data
-    const mockStudent: StudentDetails = {
-      id: studentId || "std-001",
-      studentName: studentId || "John Omondi",
-      studentAdmission: studentId || "ADM-2024-001",
-      grade: studentId ? "Grade 7" : "Grade 7",
-      gender: "MALE",
-      dateOfBirth: new Date(Date.now() - 10 * 365 * 86400000).toISOString().split("T")[0],
-      address: "Nairobi, Kenya",
-      contactNumber: "+254712345678",
-      emergencyContact: "+254755555555",
-      parentGuardianName: "Joseph Omondi",
-      parentGuardianContact: "+254711222333",
-      religion: "Anglican",
-      nationality: "Kenyan",
+    const institutionId = await scopedInstitutionId()
+    if (!institutionId) {
+      return NextResponse.json({ success: false, error: "No active membership" }, { status: 403 })
     }
 
-    // Mock current assignment
-    const mockAssignment: StudentAssignment | null = studentId
+    const { searchParams } = new URL(request.url)
+    const studentId = searchParams.get("studentId")?.trim() ?? ""
+    const admissionNumber = searchParams.get("admissionNumber")?.trim() ?? ""
+    if (!studentId && !admissionNumber) {
+      return NextResponse.json({ success: false, error: "studentId or admissionNumber is required" }, { status: 400 })
+    }
+
+    const student = await prisma.student.findFirst({
+      where: { institutionId, ...(studentId ? { id: studentId } : { admissionNumber }) },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        admissionNumber: true,
+        grade: { select: { name: true } },
+      },
+    })
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Student not found in this institution" }, { status: 404 })
+    }
+
+    const assignment = await prisma.roomAssignment.findFirst({
+      where: { studentId: student.id, isCurrent: true, room: { dormitory: { institutionId } } },
+      include: { room: { select: { roomNumber: true, dormitory: { select: { name: true } } } } },
+    })
+
+    const billingLines = await prisma.invoiceLine.findMany({
+      where: { feeItem: { type: "BOARDING" }, invoice: { studentId: student.id, institutionId } },
+      include: {
+        feeItem: { select: { id: true, name: true } },
+        invoice: {
+          include: {
+            term: { select: { name: true, academicYear: { select: { name: true } } } },
+            payments: { include: { receipt: { select: { receiptNumber: true } } }, orderBy: { transactionDate: "desc" as const } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    })
+
+    const studentName = `${student.firstName} ${student.lastName}`.trim()
+
+    const currentAssignment = assignment
       ? {
-          id: "sassign-001",
-          roomId: "room-001",
-          roomNumber: "R-101",
-          dormitoryName: "Boys' House",
-          studentId: studentId,
-          studentName: mockStudent.studentName,
-          studentAdmission: mockStudent.studentAdmission,
-          grade: mockStudent.grade,
-          leaseStart: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-          leaseEnd: new Date(Date.now() + 604800000).toISOString().split("T")[0],
-          isCurrent: true,
-          rentAmount: 50000,
-          daysRemaining: 30,
-          status: "ACTIVE",
-          assignedAt: new Date(Date.now() - 604800000).toISOString(),
-          assignedBy: "admin-001",
+          id: assignment.id,
+          roomId: assignment.roomId,
+          roomNumber: assignment.room.roomNumber,
+          dormitoryName: assignment.room.dormitory.name,
+          studentId: student.id,
+          studentName,
+          admissionNumber: student.admissionNumber ?? "",
+          grade: student.grade?.name ?? "(unassigned)",
+          leaseStart: assignment.leaseStart.toISOString().slice(0, 10),
+          leaseEnd: assignment.leaseEnd ? assignment.leaseEnd.toISOString().slice(0, 10) : null,
+          isCurrent: assignment.isCurrent,
+          rentAmount: assignment.rentAmount,
+          daysRemaining: assignment.leaseEnd ? Math.max(0, Math.ceil((assignment.leaseEnd.getTime() - Date.now()) / DAY_MS)) : null,
+          status: "ACTIVE" as const,
         }
       : null
 
-    // Mock billing history
-    const mockBilling: StudentBilling[] = [
-      {
-        id: "bill-001",
-        feeId: "fee-001",
-        feeName: "Full Boarding - Termly",
-        amount: 75000,
-        period: "Term 1 2024",
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        status: "PENDING",
-      },
-      {
-        id: "bill-002",
-        feeId: "fee-001",
-        feeName: "Full Boarding - Termly",
-        amount: 75000,
-        period: "Term 2 2024",
-        dueDate: new Date().toISOString().split("T")[0],
-        status: "PAID",
-        paidDate: new Date(Date.now() - 86400000).toISOString(),
-        paymentMethod: "M-Pesa STK Push",
-        receiptNumber: "REC-2024-001",
-      },
-    ]
-
-    const studentProfile: StudentProfile = {
-      student: mockStudent,
-      currentAssignment: mockAssignment,
-      billingHistory: mockBilling,
-    }
+    const billingHistory = billingLines.map((line) => {
+      const inv = line.invoice
+      const latestPayment = inv.payments[0]
+      return {
+        id: line.id,
+        invoiceId: inv.id,
+        feeItemId: line.feeItem.id,
+        feeName: line.feeItem.name,
+        amount: Math.round(Number(line.lineAmount) / 100),
+        period: inv.term ? `${inv.term.name} ${inv.term.academicYear.name}` : "—",
+        dueDate: inv.dueDate.toISOString().slice(0, 10),
+        status: billingStatus(inv.status),
+        paidDate: latestPayment?.transactionDate.toISOString(),
+        paymentMethod: latestPayment?.method,
+        receiptNumber: latestPayment?.receipt?.receiptNumber,
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      data: studentProfile,
+      data: {
+        student: {
+          id: student.id,
+          studentName,
+          admissionNumber: student.admissionNumber ?? "",
+          grade: student.grade?.name ?? "(unassigned)",
+        },
+        currentAssignment,
+        billingHistory,
+      },
     })
   } catch (error) {
-    console.error("Student details error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch student details" },
-      { status: 500 }
-    )
+    console.error("Student boarding profile GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch student boarding profile" }, { status: 500 })
   }
 }

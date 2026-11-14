@@ -1,129 +1,283 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { getGuardianContext } from "@/server/parent"
+import { requireAccess, requirePermission, scopedInstitutionId } from "@/server/rbac"
+import type { InvoiceStatus, Prisma } from "@prisma/client"
 
-interface BoardingBilling {
-  id: string
-  studentId: string
-  studentName: string
-  studentAdmission: string
-  feeId: string
-  feeName: string
-  amount: number
-  period: string
-  dueDate: string
-  status: "PENDING" | "PAID" | "OVERDUE"
-  paidDate?: string
-  paymentMethod?: string
-  receiptNumber?: string
+export const dynamic = "force-dynamic"
+
+const billingStatus = (status: InvoiceStatus): "PENDING" | "PAID" | "OVERDUE" =>
+  status === "PAID" ? "PAID" : status === "OVERDUE" ? "OVERDUE" : "PENDING"
+
+const lineSelect = {
+  feeItem: { select: { id: true, name: true } },
+  invoice: {
+    include: {
+      student: { select: { id: true, firstName: true, lastName: true, admissionNumber: true } },
+      term: { select: { name: true, academicYear: { select: { name: true } } } },
+      payments: {
+        include: { receipt: { select: { receiptNumber: true } } },
+        orderBy: { transactionDate: "desc" as const },
+      },
+    },
+  },
+} as const
+
+type LineWithRelations = Prisma.InvoiceLineGetPayload<{ include: typeof lineSelect }>
+
+const toDto = (line: LineWithRelations) => {
+  const inv = line.invoice
+  const latestPayment = inv.payments[0]
+  return {
+    id: line.id,
+    invoiceId: inv.id,
+    studentId: inv.student.id,
+    studentName: `${inv.student.firstName} ${inv.student.lastName}`.trim(),
+    admissionNumber: inv.student.admissionNumber ?? "",
+    feeName: line.feeItem.name,
+    amount: Math.round(Number(line.lineAmount.toString()) / 100),
+    period: inv.term ? `${inv.term.name} ${inv.term.academicYear.name}` : "—",
+    dueDate: inv.dueDate.toISOString().slice(0, 10),
+    status: billingStatus(inv.status),
+    paidDate: latestPayment?.transactionDate.toISOString(),
+    paymentMethod: latestPayment?.method,
+    receiptNumber: latestPayment?.receipt?.receiptNumber,
+  }
 }
 
-interface BillingFilter {
-  studentId?: string
-  status?: "PENDING" | "PAID" | "OVERDUE"
-  searchTerm?: string
+/** Staff members get the whole institution; guardians get only their own children. */
+async function callerScope(): Promise<
+  { institutionId: string; studentIds: string[] | null } | { error: NextResponse }
+> {
+  const guardian = await getGuardianContext()
+  if (!("error" in guardian)) {
+    const links = await prisma.studentGuardian.findMany({
+      where: { guardianId: guardian.guardian.guardianId, institutionId: guardian.guardian.institutionId },
+      select: { studentId: true },
+    })
+    return { institutionId: guardian.guardian.institutionId, studentIds: links.map((l) => l.studentId) }
+  }
+
+  const permissionCheck = await requirePermission("portal:staff:read")
+  if (permissionCheck) return { error: NextResponse.json({ success: false, error: "Not authorised" }, { status: 403 }) }
+
+  const institutionId = await scopedInstitutionId()
+  if (!institutionId) {
+    return { error: NextResponse.json({ success: false, error: "No active membership" }, { status: 403 }) }
+  }
+  return { institutionId, studentIds: null }
 }
 
 export async function GET(request: Request) {
   try {
+    const scope = await callerScope()
+    if ("error" in scope) return scope.error
+    const { institutionId, studentIds } = scope
+    if (studentIds && studentIds.length === 0) {
+      return NextResponse.json({ success: true, data: [] })
+    }
+
     const { searchParams } = new URL(request.url)
-    const studentId = searchParams.get("studentId")
-    const status = searchParams.get("status") as "PENDING" | "PAID" | "OVERDUE" || undefined
-    const searchTerm = searchParams.get("search") || ""
+    const studentId = searchParams.get("studentId")?.trim() ?? ""
+    const status = searchParams.get("status")?.toUpperCase() ?? ""
+    const search = searchParams.get("search")?.trim().toLowerCase() ?? ""
 
-    // Mock boarding billing data
-    const mockBilling: BoardingBilling[] = [
-      {
-        id: "bill-001",
-        studentId: "std-001",
-        studentName: "John Omondi",
-        studentAdmission: "ADM-2024-001",
-        feeId: "fee-001",
-        feeName: "Full Boarding - Termly",
-        amount: 75000,
-        period: "Term 1 2024",
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        status: "PENDING",
+    const statusWhere =
+      status === "PAID"
+        ? { status: "PAID" as const }
+        : status === "OVERDUE"
+          ? { status: "OVERDUE" as const }
+          : status === "PENDING"
+            ? { status: { in: ["DRAFT", "SENT", "PARTIALLY_PAID"] as InvoiceStatus[] } }
+            : {}
+
+    const lines = await prisma.invoiceLine.findMany({
+      where: {
+        feeItem: { type: "BOARDING" },
+        invoice: {
+          institutionId,
+          ...(studentIds ? { studentId: { in: studentIds } } : {}),
+          ...(studentId ? { studentId } : {}),
+          ...statusWhere,
+        },
       },
-      {
-        id: "bill-002",
-        studentId: "std-002",
-        studentName: "Jane Doe",
-        studentAdmission: "ADM-2024-002",
-        feeId: "fee-001",
-        feeName: "Full Boarding - Termly",
-        amount: 75000,
-        period: "Term 1 2024",
-        dueDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        status: "OVERDUE",
-      },
-      {
-        id: "bill-003",
-        studentId: "std-003",
-        studentName: "Peter Omondi",
-        studentAdmission: "ADM-2024-003",
-        feeId: "fee-001",
-        feeName: "Full Boarding - Termly",
-        amount: 75000,
-        period: "Term 1 2024",
-        dueDate: new Date().toISOString().split("T")[0],
-        status: "PAID",
-        paidDate: new Date(Date.now() - 86400000).toISOString(),
-        paymentMethod: "M-Pesa STK Push",
-        receiptNumber: "REC-2024-001",
-      },
-    ]
-
-    let filteredBilling = mockBilling
-
-    if (studentId) {
-      filteredBilling = filteredBilling.filter((b) => b.studentId === studentId)
-    }
-    if (status) {
-      filteredBilling = filteredBilling.filter((b) => b.status === status)
-    }
-    if (searchTerm) {
-      const termLower = searchTerm.toLowerCase()
-      filteredBilling = filteredBilling.filter(
-        (b) => b.studentName.toLowerCase().includes(termLower) ||
-        b.feeName.toLowerCase().includes(termLower) ||
-        b.receiptNumber?.toLowerCase().includes(termLower)
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: filteredBilling,
+      include: lineSelect,
+      orderBy: { createdAt: "desc" },
+      take: 500,
     })
+
+    const data = lines
+      .map(toDto)
+      .filter(
+        (dto) =>
+          !search ||
+          dto.studentName.toLowerCase().includes(search) ||
+          dto.admissionNumber.toLowerCase().includes(search) ||
+          dto.feeName.toLowerCase().includes(search) ||
+          (dto.receiptNumber ?? "").toLowerCase().includes(search),
+      )
+      .slice(0, 200)
+
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error("Boarding billing error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch boarding billing" },
-      { status: 500 }
-    )
+    console.error("Boarding billing GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch boarding billing" }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const gate = await requireAccess("portal:staff:write")
+    if ("error" in gate) return gate.error
+    const { membership } = gate
+    const institutionId = membership.institutionId
 
-    // Create new billing record
-    const newBilling: BoardingBilling = {
-      id: `bill-${Date.now().toString(36)}`,
-      ...body,
-      status: "PENDING",
-      dueDate: new Date().toISOString().split("T")[0],
+    const body = await request.json().catch(() => null)
+    const admissionNumber = typeof body?.admissionNumber === "string" ? body.admissionNumber.trim() : ""
+    const amount = typeof body?.amount === "number" ? body.amount : Number(body?.amount)
+    const description = typeof body?.description === "string" ? body.description.trim() : "Boarding fee"
+    const dueDate = typeof body?.dueDate === "string" ? body.dueDate : ""
+
+    if (!admissionNumber) {
+      return NextResponse.json({ success: false, error: "admissionNumber is required" }, { status: 400 })
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ success: false, error: "amount must be a positive number (KES)" }, { status: 400 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: newBilling,
-      message: "Billing record created successfully",
+    let due: Date = new Date(Date.now() + 30 * 86_400_000)
+    if (dueDate) {
+      const parsed = new Date(dueDate)
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ success: false, error: "dueDate is not a valid date" }, { status: 400 })
+      }
+      due = parsed
+    }
+
+    const student = await prisma.student.findFirst({
+      where: { institutionId, admissionNumber },
+      select: { id: true },
     })
-  } catch (error) {
-    console.error("Create billing error:", error)
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Student not found in this institution" }, { status: 404 })
+    }
+
+    const academicYear = await prisma.academicYear.findFirst({
+      where: { institutionId, status: "ACTIVE" },
+      include: { terms: { where: { isCurrent: true }, take: 1 } },
+      orderBy: { startDate: "desc" },
+    })
+    if (!academicYear) {
+      return NextResponse.json({ success: false, error: "No active academic year is configured" }, { status: 409 })
+    }
+    const term = academicYear.terms[0] ?? null
+    const academicYearId = academicYear.id
+    const termId = term?.id ?? null
+
+    const amountCents = Math.round(amount * 100)
+
+    const result = await prisma.$transaction(async (tx) => {
+      const structure = await tx.feeStructure.findFirst({
+        where: { institutionId, academicYearId, name: "Boarding Fees" },
+        select: { id: true },
+      })
+      const structureId =
+        structure?.id ??
+        (
+          await tx.feeStructure.create({
+            data: {
+              institutionId,
+              academicYearId,
+              termId,
+              name: "Boarding Fees",
+              description: "Boarding fee charges",
+              isActive: true,
+            },
+            select: { id: true },
+          })
+        ).id
+
+      const feeItem = await tx.feeItem.create({
+        data: {
+          feeStructureId: structureId,
+          name: description,
+          type: "BOARDING",
+          amount: amountCents,
+          isOptional: false,
+          isRecurring: true,
+        },
+        select: { id: true },
+      })
+
+      const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      const invoice = await tx.invoice.create({
+        data: {
+          institutionId,
+          studentId: student.id,
+          termId,
+          academicYearId,
+          feeStructureId: structureId,
+          invoiceNumber,
+          issueDate: new Date(),
+          dueDate: due,
+          subtotal: amountCents,
+          totalAmount: amountCents,
+          amountRemaining: amountCents,
+          status: "SENT",
+          lines: {
+            create: [
+              {
+                feeItemId: feeItem.id,
+                description,
+                quantity: 1,
+                unitAmount: amountCents,
+                lineAmount: amountCents,
+              },
+            ],
+          },
+        },
+        select: { id: true, invoiceNumber: true, issueDate: true, dueDate: true, status: true },
+      })
+      return { invoice, feeItemId: feeItem.id }
+    })
+
+    await prisma.auditEvent
+      .create({
+        data: {
+          actorId: membership.userId,
+          action: "CREATE",
+          targetType: "Invoice",
+          targetId: result.invoice.id,
+          institutionId,
+          metadata: {
+            action: "issue_boarding_invoice",
+            studentId: student.id,
+            amount: amountCents,
+            description,
+          },
+        },
+      })
+      .catch(() => {})
+
     return NextResponse.json(
-      { success: false, error: "Failed to create billing record" },
-      { status: 500 }
+      {
+        success: true,
+        data: {
+          id: result.invoice.id,
+          invoiceId: result.invoice.id,
+          invoiceNumber: result.invoice.invoiceNumber,
+          studentId: student.id,
+          amount,
+          period: term ? `${term.name} ${academicYear.name}` : academicYear.name,
+          dueDate: result.invoice.dueDate.toISOString().slice(0, 10),
+          status: "PENDING" as const,
+        },
+        message: "Boarding invoice issued",
+      },
+      { status: 201 },
     )
+  } catch (error) {
+    console.error("Boarding billing POST error:", error)
+    return NextResponse.json({ success: false, error: "Failed to issue boarding invoice" }, { status: 500 })
   }
 }

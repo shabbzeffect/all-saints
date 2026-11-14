@@ -62,6 +62,7 @@ export async function GET(request: Request) {
 
     const rooms = await prisma.room.findMany({
       where,
+      include: { dormitory: { select: { name: true } } },
       orderBy: { roomNumber: "asc" },
     }).then((rows) =>
       status === "FULL" ? rows.filter((room) => room.currentStudents >= room.capacity) : rows
@@ -70,6 +71,7 @@ export async function GET(request: Request) {
     // Calculate occupancy rates
     const withRates = rooms.map((room) => ({
       ...room,
+      dormitoryName: room.dormitory?.name ?? null,
       occupancyRate: Math.round((room.currentStudents / room.capacity) * 100),
       isFull: room.currentStudents >= room.capacity,
     }))

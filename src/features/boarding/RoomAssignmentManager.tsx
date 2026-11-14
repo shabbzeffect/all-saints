@@ -24,12 +24,11 @@ interface CurrentAssignment {
   id: string
   studentId?: string
   studentName?: string
-  studentAdmission?: string
+  admissionNumber?: string
   roomNumber?: string
   dormitoryName?: string
-  room?: { roomNumber?: string; dormitory?: { name?: string } }
   leaseStart?: string
-  leaseEnd?: string
+  leaseEnd?: string | null
   rentAmount?: number
 }
 
@@ -38,7 +37,7 @@ export function RoomAssignmentManager() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [studentName, setStudentName] = useState("")
+  const [admissionNumber, setAdmissionNumber] = useState("")
   const [roomId, setRoomId] = useState("")
   const [leaseStart, setLeaseStart] = useState(() => new Date().toISOString().slice(0, 10))
   const [leaseEnd, setLeaseEnd] = useState("")
@@ -81,11 +80,11 @@ export function RoomAssignmentManager() {
       const res = await fetch("/api/boarding/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentName, roomId, leaseStart, leaseEnd, rentAmount: Number(rentAmount) || 0 }),
+        body: JSON.stringify({ admissionNumber, roomId, leaseStart, leaseEnd, rentAmount: Number(rentAmount) || 0 }),
       })
       setMessage(res.ok ? "Student assigned to room." : "Could not assign student.")
       if (res.ok) {
-        setStudentName("")
+        setAdmissionNumber("")
         setRoomId("")
         setLeaseEnd("")
         setRentAmount("")
@@ -103,8 +102,8 @@ export function RoomAssignmentManager() {
     return dorm ? `${room.roomNumber} — ${dorm}` : room.roomNumber
   }
 
-  const assignmentRoom = (a: CurrentAssignment) => a.roomNumber ?? a.room?.roomNumber ?? "—"
-  const assignmentDorm = (a: CurrentAssignment) => a.dormitoryName ?? a.room?.dormitory?.name ?? "—"
+  const assignmentRoom = (a: CurrentAssignment) => a.roomNumber ?? "—"
+  const assignmentDorm = (a: CurrentAssignment) => a.dormitoryName ?? "—"
 
   return (
     <div className="space-y-6">
@@ -120,8 +119,8 @@ export function RoomAssignmentManager() {
         <CardContent>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div className="sm:col-span-2">
-              <label htmlFor="studentName" className="mb-1 block text-xs font-medium text-muted-foreground">Student Name</label>
-              <Input id="studentName" name="studentName" value={studentName} onValueChange={setStudentName} placeholder="Full name" required />
+              <label htmlFor="admissionNumber" className="mb-1 block text-xs font-medium text-muted-foreground">Admission No.</label>
+              <Input id="admissionNumber" name="admissionNumber" value={admissionNumber} onValueChange={setAdmissionNumber} placeholder="e.g. 1180" required />
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="room" className="mb-1 block text-xs font-medium text-muted-foreground">Room</label>
@@ -177,7 +176,7 @@ export function RoomAssignmentManager() {
                 <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="font-medium">{assignment.studentName ?? assignment.studentId}</div>
-                    {assignment.studentAdmission && <div className="text-xs text-muted-foreground">{assignment.studentAdmission}</div>}
+                    {assignment.admissionNumber && <div className="text-xs text-muted-foreground">{assignment.admissionNumber}</div>}
                   </TableCell>
                   <TableCell className="text-center">{assignmentRoom(assignment)}</TableCell>
                   <TableCell className="text-center">{assignmentDorm(assignment)}</TableCell>
