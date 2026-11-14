@@ -32,6 +32,16 @@ interface FinanceStats {
   overdueStudents: number
 }
 
+interface Arrear {
+  studentId: string
+  studentName: string
+  admissionNumber: string
+  grade: string
+  outstanding: number
+  invoiceCount: number
+  earliestDueDate: string | null
+}
+
 interface FeePayment {
   id: string
   studentName: string
@@ -65,6 +75,9 @@ async function readApi(res: Response): Promise<any> {
 export function SchoolFinance() {
   const [method, setMethod] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [arrearSearch, setArrearSearch] = useState("")
+  const [gradeFilter, setGradeFilter] = useState("")
+  const [arrears, setArrears] = useState<Arrear[]>([])
   const [feeStructure, setFeeStructure] = useState<FeeStructure[]>([])
   const [stats, setStats] = useState<FinanceStats | null>(null)
   const [payments, setPayments] = useState<FeePayment[]>([])
@@ -80,19 +93,23 @@ export function SchoolFinance() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [feeRes, paymentRes] = await Promise.all([
+      const [feeRes, paymentRes, arrearsRes] = await Promise.all([
         fetch("/api/school/finance", { cache: "no-store" }),
         fetch("/api/school/finance/payments", { cache: "no-store" }),
+        fetch("/api/school/finance/arrears", { cache: "no-store" }),
       ])
       const feeBody = await readApi(feeRes)
       const paymentBody = await readApi(paymentRes)
+      const arrearsBody = await readApi(arrearsRes)
       setFeeStructure(feeBody?.data?.feeStructure ?? [])
       setStats(feeBody?.data?.stats ?? null)
       setPayments(paymentBody?.data ?? [])
+      setArrears(arrearsBody?.data?.arrears ?? [])
     } catch {
       setFeeStructure([])
       setStats(null)
       setPayments([])
+      setArrears([])
     } finally {
       setLoading(false)
     }
@@ -101,6 +118,23 @@ export function SchoolFinance() {
   useEffect(() => {
     fetchAll()
   }, [fetchAll])
+
+  const arrearGrades = [...new Set(arrears.map((a) => a.grade))].sort()
+  const visibleArrears = arrears.filter((a) => {
+    if (gradeFilter && a.grade !== gradeFilter) return false
+    if (arrearSearch) {
+      const q = arrearSearch.toLowerCase()
+      if (
+        !a.studentName.toLowerCase().includes(q) &&
+        !a.admissionNumber.toLowerCase().includes(q) &&
+        !a.grade.toLowerCase().includes(q)
+      ) {
+        return false
+      }
+    }
+    return true
+  })
+  const visibleArrearsTotal = visibleArrears.reduce((sum, a) => sum + a.outstanding, 0)
 
   const visiblePayments = payments.filter((payment) => {
     if (method && payment.paymentMethod !== method) return false
@@ -175,6 +209,68 @@ export function SchoolFinance() {
           </Card>
         </div>
       )}
+
+      <Card>
+        <CardHeader className="flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>Arrears <span className="text-sm font-normal text-muted-foreground">({visibleArrears.length} learner{visibleArrears.length === 1 ? "" : "s"} with balances)</span></CardTitle>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              type="search"
+              placeholder="Search student, admission no or grade…"
+              value={arrearSearch}
+              onValueChange={setArrearSearch}
+              className="w-full sm:w-64"
+              aria-label="Search arrears"
+            />
+            <Select onValueChange={(e) => setGradeFilter(e.target.value)} defaultValue="" name="grade" aria-label="Filter by grade">
+              <SelectTrigger><SelectValue placeholder="All grades" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All grades</SelectItem>
+                {arrearGrades.map((grade) => (
+                  <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Student</TableHead>
+                <TableHead className="text-center">Grade</TableHead>
+                <TableHead className="text-center">Invoices</TableHead>
+                <TableHead className="text-center">Earliest due</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleArrears.map((a) => (
+                <TableRow key={a.studentId}>
+                  <TableCell>
+                    <div className="font-medium">{a.studentName}</div>
+                    <div className="text-xs text-muted-foreground">{a.admissionNumber}</div>
+                  </TableCell>
+                  <TableCell className="text-center">{a.grade}</TableCell>
+                  <TableCell className="text-center">{a.invoiceCount}</TableCell>
+                  <TableCell className="text-center text-sm">{a.earliestDueDate ?? "—"}</TableCell>
+                  <TableCell className="text-right font-medium text-destructive">{formatCurrency(a.outstanding)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {!loading && visibleArrears.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No learners with arrears.</p>
+          )}
+          {!loading && visibleArrears.length > 0 && (
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-muted-foreground">Total outstanding (filtered)</span>
+              <span className="text-lg font-bold text-destructive">{formatCurrency(visibleArrearsTotal)}</span>
+            </div>
+          )}
+          {loading && <TableSkeleton columns={5} rows={6} />}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

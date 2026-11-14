@@ -31,10 +31,10 @@ export async function GET() {
         where: { institutionId },
         _sum: { amount: true },
       }),
-      prisma.invoice.aggregate({
+      prisma.invoice.groupBy({
+        by: ["studentId"],
         where: { institutionId, amountRemaining: { gt: 0 } },
         _sum: { amountRemaining: true },
-        _count: true,
       }),
     ])
 
@@ -54,9 +54,9 @@ export async function GET() {
     const stats = {
       invoiced: centsToKes(invoiceStats._sum.totalAmount),
       collected: centsToKes(collectedStats._sum.amount),
-      outstanding: centsToKes(overdueStats._sum.amountRemaining),
+      outstanding: centsToKes(overdueStats.reduce((sum, s) => sum + Number(s._sum.amountRemaining ?? 0), 0)),
       remainingNet: centsToKes(invoiceStats._sum.amountRemaining),
-      overdueStudents: overdueStats._count,
+      overdueStudents: overdueStats.length,
     }
 
     return NextResponse.json({ success: true, data: { feeStructure, stats } })
