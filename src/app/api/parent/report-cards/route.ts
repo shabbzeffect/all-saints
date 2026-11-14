@@ -1,105 +1,111 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/server/db"
+import { getGuardianContext } from "@/server/parent"
 
-interface ReportCard {
-  id: string
-  term: string
-  academicYear: string
-  issueDate: string
-  overallGrade: string
-  overallScore: number
-  subjects: {
-    name: string
-    grade: string
-    score: number
-  }[]
-  studentName: string
-  admissionNumber: string
-  downloaded: boolean
-  parentAcknowledged: boolean
-}
+export const dynamic = "force-dynamic"
 
-interface ReportCardsResponse {
-  reportCards: ReportCard[]
-}
+const overallGrade = (pct: number) =>
+  pct >= 80 ? "A" : pct >= 70 ? "B" : pct >= 60 ? "C" : pct >= 50 ? "D" : "E"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const institutionId = searchParams.get("institutionId") || "inst-school-1"
-    const studentId = searchParams.get("studentId")
+    const gate = await getGuardianContext()
+    if ("error" in gate) return gate.error
+    const { guardianId, institutionId } = gate.guardian
 
-    // Mock report cards data - in a real app, this would fetch from database
-    const mockReportCards: ReportCard[] = [
-      {
-        id: "rc-001",
-        term: "Term 1",
-        academicYear: "2024",
-        issueDate: new Date(Date.now() - 86400000).toISOString(),
-        overallGrade: "A",
-        overallScore: 85,
-        subjects: [
-          { name: "Mathematics", grade: "A", score: 92 },
-          { name: "English", grade: "B", score: 78 },
-          { name: "Swahili", grade: "A", score: 88 },
-          { name: "Science", grade: "A", score: 90 },
-        ],
-        studentName: "Jane Doe",
-        admissionNumber: "ADM-2024-001",
-        downloaded: true,
-        parentAcknowledged: true,
-      },
-      {
-        id: "rc-002",
-        term: "Term 2",
-        academicYear: "2024",
-        issueDate: new Date(Date.now() - 172800000).toISOString(),
-        overallGrade: "B+",
-        overallScore: 72,
-        subjects: [
-          { name: "Mathematics", grade: "B", score: 75 },
-          { name: "English", grade: "B+", score: 70 },
-          { name: "Swahili", grade: "A", score: 85 },
-          { name: "Science", grade: "B+", score: 78 },
-        ],
-        studentName: "John Smith",
-        admissionNumber: "ADM-2024-002",
-        downloaded: false,
-        parentAcknowledged: false,
-      },
-    ]
-
-    let filteredCards = mockReportCards
-
-    if (studentId) {
-      filteredCards = mockReportCards.filter(
-        (card) => card.admissionNumber === studentId || card.studentName.includes(studentId)
-      )
+    const links = await prisma.studentGuardian.findMany({
+      where: { guardianId, institutionId },
+      include: { student: { select: { id: true, firstName: true, lastName: true, admissionNumber: true } } },
+    })
+    const studentIds = links.map((l) => l.student.id)
+    if (studentIds.length === 0) {
+      return NextResponse.json({ success: true, data: { reportCards: [] } })
     }
 
-    return NextResponse.json({ success: true, data: filteredCards })
+    const cards = await prisma.reportCard.findMany({
+      where: { studentId: { in: studentIds }, status: "ISSUED" },
+      include: {
+        term: { select: { name: true, academicYear: { select: { name: true } } } },
+        student: { select: { id: true, firstName: true, lastName: true, admissionNumber: true } },
+      },
+      orderBy: { issuedAt: "desc" },
+      take: 50,
+    })
+
+    const scores = studentIds.length
+      ? await prisma.assessmentScore.findMany({
+          where: { studentId: { in: studentIds } },
+          include: { assessment: { include: { subject: { select: { name: true } } } } },
+        })
+      : []
+
+    const reportCards = cards.map((card) => {
+      const cardScores = scores.filter((s) => s.studentId === card.studentId && s.assessment.termId === card.termId)
+      const subjects = cardScores.map((s) => ({
+        name: s.assessment.subject.name,
+        score: s.score,
+        maxScore: s.assessment.maxScore,
+        grade: s.gradeBand,
+      }))
+      const pct =
+        subjects.length > 0
+          ? Math.round(subjects.reduce((sum, s) => sum + (s.maxScore > 0 ? (s.score / s.maxScore) * 100 : 0), 0) / subjects.length)
+          : 0
+      return {
+        id: card.id,
+        term: card.term.name,
+        academicYear: card.term.academicYear.name,
+        issueDate: card.issuedAt.toISOString(),
+        overallGrade: overallGrade(pct),
+        overallScore: pct,
+        subjects,
+        studentName: `${card.student.firstName} ${card.student.lastName}`.trim(),
+        admissionNumber: card.student.admissionNumber ?? "",
+        parentAcknowledged: card.parentAcknowledged,
+      }
+    })
+
+    return NextResponse.json({ success: true, data: { reportCards } })
   } catch (error) {
-    console.error("Parent report-cards error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch report cards" },
-      { status: 500 }
-    )
+    console.error("Parent report-cards GET error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch report cards" }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { receiptId, reportId } = await request.json()
+    const gate = await getGuardianContext()
+    if ("error" in gate) return gate.error
+    const { guardianId, institutionId } = gate.guardian
 
-    // Acknowledge report card
-    return NextResponse.json({
-      success: true,
-      data: { parentAcknowledged: true },
+    const body = await request.json().catch(() => null)
+    const reportCardId = typeof body?.reportCardId === "string" ? body.reportCardId : ""
+    if (!reportCardId) {
+      return NextResponse.json({ success: false, error: "reportCardId is required" }, { status: 400 })
+    }
+
+    const links = await prisma.studentGuardian.findMany({
+      where: { guardianId, institutionId },
+      select: { studentId: true },
     })
+    const studentIds = links.map((l) => l.studentId)
+
+    const card = await prisma.reportCard.findFirst({
+      where: { id: reportCardId, studentId: { in: studentIds } },
+      select: { id: true },
+    })
+    if (!card) {
+      return NextResponse.json({ success: false, error: "Report card not found" }, { status: 404 })
+    }
+
+    await prisma.reportCard.update({
+      where: { id: card.id },
+      data: { parentAcknowledged: true, parentAcknowledgedAt: new Date() },
+    })
+
+    return NextResponse.json({ success: true, data: { parentAcknowledged: true } })
   } catch (error) {
-    console.error("Acknowledge report card error:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to acknowledge report card" },
-      { status: 500 }
-    )
+    console.error("Parent report-cards POST error:", error)
+    return NextResponse.json({ success: false, error: "Failed to acknowledge report card" }, { status: 500 })
   }
 }

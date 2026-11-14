@@ -4,9 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Download, Receipt } from "lucide-react"
+import { Printer, Receipt, RefreshCw } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface ReceiptRow {
@@ -15,30 +15,33 @@ interface ReceiptRow {
   amount: number
   paymentMethod: string
   issueDate: string
-  status: "ISSUED" | "ACKNOWLEDGED" | "VOID"
   studentName: string
-  acknowledged: boolean
+  admissionNumber: string
 }
-
-const FALLBACK_RECEIPTS: ReceiptRow[] = [
-  { id: "rec-001", receiptNumber: "REC-2026-001", amount: 15000, paymentMethod: "MPESA_STK_PUSH", issueDate: new Date(Date.now() - 86400000).toISOString(), status: "ISSUED", studentName: "Adeline Akinyi", acknowledged: false },
-  { id: "rec-002", receiptNumber: "REC-2026-002", amount: 18500, paymentMethod: "BANK_DEPOSIT", issueDate: new Date(Date.now() - 172800000).toISOString(), status: "ACKNOWLEDGED", studentName: "Brian Ochieng", acknowledged: true },
-]
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(new Set())
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch("/api/parent/receipts", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body) => setReceipts(body?.receipts?.length ? body.receipts : FALLBACK_RECEIPTS))
-      .catch(() => setReceipts(FALLBACK_RECEIPTS))
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/parent/receipts", { cache: "no-store" })
+      const body = await res.json().catch(() => null)
+      if (!res.ok || !body?.success) throw new Error(body?.error ?? "Request failed")
+      setReceipts(body.data?.receipts ?? [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load receipts")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const acknowledge = (id: string) => setAcknowledgedIds((prev) => new Set(prev).add(id))
+  useEffect(() => {
+    load()
+  }, [load])
 
   return (
     <div className="space-y-6">
@@ -52,54 +55,51 @@ export default function ReceiptsPage() {
           <CardTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" /> {receipts.length} Receipts</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt No.</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-center">Method</TableHead>
-                <TableHead className="text-center">Issued</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receipts.map((receipt) => {
-                const acknowledged = receipt.acknowledged || acknowledgedIds.has(receipt.id)
-                return (
-                  <TableRow key={receipt.id}>
-                    <TableCell className="font-mono text-xs">{receipt.receiptNumber}</TableCell>
-                    <TableCell>{receipt.studentName}</TableCell>
-                    <TableCell className="text-right font-medium">KSh {receipt.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-center text-xs">{receipt.paymentMethod.replaceAll("_", " ")}</TableCell>
-                    <TableCell className="text-center text-sm">{new Date(receipt.issueDate).toLocaleDateString("en-KE")}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={acknowledged ? "success" : "warning"} size="sm">
-                        {acknowledged ? "ACKNOWLEDGED" : "ISSUED"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="inline-flex items-center gap-2">
-                        <Button variant="outline" size="sm" aria-label="Download receipt">
-                          <Download className="mr-1 h-4 w-4" /> PDF
-                        </Button>
-                        {!acknowledged && (
-                          <Button variant="ghost" size="sm" onClick={() => acknowledge(receipt.id)}>
-                            Acknowledge
-                          </Button>
-                        )}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-          {!loading && receipts.length === 0 && (
-            <div className="flex flex-col items-center py-8"><Receipt className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" /><p className="mt-2 text-sm font-medium text-muted-foreground">No receipts yet</p><Link href="/parent/pay-fees" className="mt-1 text-xs font-semibold text-anglican-blue-700 hover:underline">Pay a fee to get your first receipt</Link></div>
-          )}
           {loading && <TableSkeleton columns={6} rows={5} />}
+          {!loading && error && (
+            <div className="py-6 text-center">
+              <p className="font-medium text-destructive">Could not load receipts</p>
+              <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+              <button onClick={load} className="mt-4 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+                <RefreshCw className="h-4 w-4" /> Retry
+              </button>
+            </div>
+          )}
+          {!loading && !error && (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Receipt No.</TableHead>
+                    <TableHead>Student</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Method</TableHead>
+                    <TableHead className="text-center">Issued</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {receipts.map((receipt) => (
+                    <TableRow key={receipt.id}>
+                      <TableCell className="font-mono text-xs">{receipt.receiptNumber}</TableCell>
+                      <TableCell>{receipt.studentName}</TableCell>
+                      <TableCell className="text-right font-medium">KSh {receipt.amount.toLocaleString()}</TableCell>
+                      <TableCell className="text-center text-xs">{receipt.paymentMethod.replaceAll("_", " ")}</TableCell>
+                      <TableCell className="text-center text-sm">{new Date(receipt.issueDate).toLocaleDateString("en-KE")}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => window.print()} aria-label="Print receipt">
+                          <Printer className="mr-1 h-4 w-4" /> Print
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {receipts.length === 0 && (
+                <div className="flex flex-col items-center py-8"><Receipt className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} aria-hidden="true" /><p className="mt-2 text-sm font-medium text-muted-foreground">No receipts yet</p><Link href="/parent/pay-fees" className="mt-1 text-xs font-semibold text-anglican-blue-700 hover:underline">Pay a fee to get your first receipt</Link></div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
