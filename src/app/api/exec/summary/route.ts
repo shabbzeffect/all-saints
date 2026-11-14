@@ -26,6 +26,8 @@ export async function GET() {
       overdueStats,
       creditStats,
       arrearsByStudent,
+      attendanceRecords,
+      duplicateGroups,
     ] = await Promise.all([
       prisma.student.count({ where: { institutionId } }),
       prisma.student.count({ where: { institutionId, status: "ACTIVE" } }),
@@ -38,6 +40,13 @@ export async function GET() {
       prisma.invoice.aggregate({ where: { institutionId, amountRemaining: { gt: 0 } }, _sum: { amountRemaining: true }, _count: true }),
       prisma.invoice.aggregate({ where: { institutionId, amountRemaining: { lt: 0 } }, _sum: { amountRemaining: true }, _count: true }),
       prisma.invoice.groupBy({ by: ["studentId"], where: { institutionId, amountRemaining: { gt: 0 } }, _sum: { amountRemaining: true } }),
+      prisma.attendance.count({ where: { institutionId } }),
+      prisma.student.groupBy({
+        by: ["admissionNumber"],
+        where: { institutionId, admissionNumber: { not: null } },
+        _count: { _all: true },
+        having: { admissionNumber: { _count: { gt: 1 } } },
+      }),
     ])
 
     const studentIds = arrearsByStudent.map((r) => r.studentId)
@@ -56,6 +65,10 @@ export async function GET() {
     const arrearsByGrade = [...gradeArrears.entries()]
       .map(([grade, v]) => ({ grade, amount: Math.round(v.amount * 100) / 100, learners: v.learners }))
       .sort((a, b) => b.amount - a.amount)
+
+    const duplicateAdmissionNumbers = duplicateGroups
+      .map((g) => g.admissionNumber)
+      .filter((n): n is string => n !== null)
 
     const invoiced = kes(invoiceStats._sum.totalAmount)
     const collected = kes(collectedStats._sum.amount)
@@ -90,6 +103,8 @@ export async function GET() {
             topThreeConcentration: Math.round(topThreeConcentration),
           },
           arrearsByGrade,
+          duplicateAdmissionNumbers,
+          attendanceRecords,
         },
         parish: null,
       },

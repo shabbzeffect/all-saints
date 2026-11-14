@@ -33,6 +33,8 @@ interface SchoolSummary {
     topThreeConcentration: number
   }
   arrearsByGrade: ArrearsGrade[]
+  duplicateAdmissionNumbers: string[]
+  attendanceRecords: number
 }
 
 const kes = (n: number) => formatCurrency(n)
@@ -187,20 +189,34 @@ export default function ExecDashboard() {
                   </div>
                   <span className="rounded-full bg-anglican-gold-100 px-2 py-0.5 text-xs font-medium text-anglican-gold-800">Finance</span>
                 </li>
-                <li className="flex items-start justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium">Duplicate admission numbers</p>
-                    <p className="text-xs text-muted-foreground">4 numbers shared by two learners (1180, 1036, 690, 695) — registrar to reissue</p>
-                  </div>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Urgent</span>
-                </li>
-                <li className="flex items-start justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium">Attendance register empty</p>
-                    <p className="text-xs text-muted-foreground">No attendance records imported yet — registers can’t be marked until setup is done</p>
-                  </div>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Urgent</span>
-                </li>
+                {school.duplicateAdmissionNumbers.length > 0 && (
+                  <li className="flex items-start justify-between gap-3 py-3">
+                    <div>
+                      <p className="font-medium">Duplicate admission numbers</p>
+                      <p className="text-xs text-muted-foreground">
+                        {school.duplicateAdmissionNumbers.length} number{school.duplicateAdmissionNumbers.length === 1 ? "" : "s"} shared by more than one learner ({school.duplicateAdmissionNumbers.join(", ")}) — registrar to reissue
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Urgent</span>
+                  </li>
+                )}
+                {school.attendanceRecords === 0 ? (
+                  <li className="flex items-start justify-between gap-3 py-3">
+                    <div>
+                      <p className="font-medium">Attendance register empty</p>
+                      <p className="text-xs text-muted-foreground">No attendance records imported yet — registers can’t be marked until setup is done</p>
+                    </div>
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Urgent</span>
+                  </li>
+                ) : (
+                  <li className="flex items-start justify-between gap-3 py-3">
+                    <div>
+                      <p className="font-medium">Attendance tracking</p>
+                      <p className="text-xs text-muted-foreground">{school.attendanceRecords.toLocaleString()} attendance records captured so far</p>
+                    </div>
+                    <span className="rounded-full bg-anglican-green-100 px-2 py-0.5 text-xs font-medium text-anglican-green-800">Live</span>
+                  </li>
+                )}
               </ul>
             </Card>
           </div>
