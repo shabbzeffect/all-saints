@@ -1,9 +1,10 @@
 "use client"
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { GraduationCap, BookOpen, Users, Wallet, CalendarDays, ClipboardCheck, FileBadge, ShieldAlert } from "lucide-react"
-import { useEffect, useState } from "react"
+import { GraduationCap, BookOpen, Users, Wallet, CalendarDays, ClipboardCheck, FileBadge, ShieldAlert, RefreshCw } from "lucide-react"
+import { useEffect, useState, useCallback } from "react"
 import { formatCurrency } from "@/lib/config"
+import { TableSkeleton } from "@/components/ui/skeleton"
 
 interface StatisticsData {
   grades: number
@@ -26,47 +27,35 @@ interface StatisticsData {
   calendarEvents: number
 }
 
-const DEMO_DATA: StatisticsData = {
-  grades: 12,
-  students: 2438,
-  guardians: 1867,
-  enrolments: 420,
-  attendanceRecords: 184320,
-  assessments: 3612,
-  reportCards: 2380,
-  kpsea: 156,
-  disciplineIncidents: 27,
-  clubs: 34,
-  clubMembers: 1240,
-  invoices: 5621,
-  receipts: 4982,
-  budgetAllocated: 48_000_000,
-  budgetSpent: 31_200_000,
-  collectedTotal: 36_000_000,
-  collectionRate: "75",
-  calendarEvents: 96,
-}
-
 export default function StatisticsPage() {
-  const [data, setData] = useState<StatisticsData>(DEMO_DATA)
-  const [live, setLive] = useState(false)
+  const [data, setData] = useState<StatisticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch("/api/statistics", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body) => {
-        if (body && typeof body.students === "number") {
-          setData({ ...DEMO_DATA, ...body })
-          setLive(true)
-        }
-      })
-      .catch(() => setLive(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/statistics", { cache: "no-store" })
+      const body = await res.json().catch(() => null)
+      if (!res.ok || !body?.success) throw new Error(body?.error ?? "Request failed")
+      setData(body)
+    } catch (e) {
+      setData(null)
+      setError(e instanceof Error ? e.message : "Could not load statistics")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const collectionRate = Number(data.collectionRate) || 0
-  const budgetUtilization = data.budgetAllocated > 0 ? Math.round((data.budgetSpent / data.budgetAllocated) * 100) : 0
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const sections = [
+  const collectionRate = data ? Number(data.collectionRate) || 0 : 0
+  const budgetUtilization = data && data.budgetAllocated > 0 ? Math.round((data.budgetSpent / data.budgetAllocated) * 100) : 0
+
+  const sections = data ? [
     {
       title: "Academics",
       icon: BookOpen,
@@ -92,10 +81,10 @@ export default function StatisticsPage() {
       stats: [
         { label: "Students Enrolled", value: data.students.toLocaleString() },
         { label: "Active Guardians", value: data.guardians.toLocaleString() },
-        { label: "Term 1 Enrolments", value: data.enrolments.toLocaleString() },
+        { label: "Current Term Enrolments", value: data.enrolments.toLocaleString() },
       ],
     },
-  ]
+  ] : []
 
   return (
     <div className="space-y-6">
@@ -103,10 +92,25 @@ export default function StatisticsPage() {
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-bold">SaintsHub Statistics</h2>
           <p className="text-sm text-muted-foreground">
-            Institution-wide indicators {live ? "· live data" : "· demo data shown while the database is offline"}
+            Institution-wide indicators · live data
           </p>
         </div>
       </div>
+
+      {loading && <TableSkeleton columns={4} rows={3} />}
+
+      {!loading && error && (
+        <Card className="p-6 text-center">
+          <p className="font-medium text-destructive">Could not load statistics</p>
+          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+          <button onClick={load} className="mt-4 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+            <RefreshCw className="h-4 w-4" /> Retry
+          </button>
+        </Card>
+      )}
+
+      {!loading && !error && data && (
+        <>
 
       {/* Headline KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -202,10 +206,12 @@ export default function StatisticsPage() {
 
       <div className="flex items-center gap-2 rounded-xl border border-border-dark/30 bg-card p-4 text-xs text-muted-foreground">
         <ShieldAlert className="h-4 w-4" />
-        Sensitive operational metrics are visible to administrators with the <span className="font-mono">statistics:read</span> permission only.
+        Sensitive operational metrics are visible to staff with the <span className="font-mono">portal:staff:read</span> permission only.
         <FileBadge className="ml-auto h-4 w-4" aria-hidden="true" />
         <CalendarDays className="h-4 w-4" aria-hidden="true" />
       </div>
+      </>
+      )}
     </div>
   )
 }
