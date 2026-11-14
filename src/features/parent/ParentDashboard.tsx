@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableCell, TableBody, TableHead } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { CreditCard, Receipt, FileText, Users, Wallet, GraduationCap } from "lucide-react"
-import type { StudentSummary } from "./sample-children"
+import type { StudentSummary } from "./types"
 
 interface ParentDashboardProps {
   students: StudentSummary[]
@@ -50,7 +50,7 @@ export function ParentDashboard({ students, onNavigate }: ParentDashboardProps) 
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
                 <p className="mt-1 text-2xl font-bold">{metric.value}</p>
               </div>
-              <metric className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
+               <metric.icon className="h-6 w-6 text-anglican-blue-700" strokeWidth={1.5} aria-hidden="true" />
             </div>
           </Card>
         ))}
